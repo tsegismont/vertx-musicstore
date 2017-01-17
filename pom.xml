@@ -12,7 +12,7 @@
     <dependencies>
       <dependency>
         <groupId>io.vertx</groupId>
-        <artifactId>stack-bom</artifactId>
+        <artifactId>vertx-stack</artifactId>
         <version>3.4.0-SNAPSHOT</version>
         <type>pom</type>
         <scope>import</scope>
@@ -24,6 +24,10 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rx-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-templ-freemarker</artifactId>
     </dependency>
   </dependencies>
 
