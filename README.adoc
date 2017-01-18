@@ -16,6 +16,21 @@ docker run --rm --name musicstore-db -e POSTGRES_USER=music -e POSTGRES_PASSWORD
 For fast development turnaround, create a Java application launcher in Eclipse IDE or IntelliJ:
 
 * Main class: `io.vertx.core.Launcher`
+* VM options: `-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory`
 * Program arguments: `run io.vertx.demo.musicstore.MusicStoreVerticle --redeploy=target/**/* --launcher-class=io.vertx.core.Launcher`
 * Working directory: `</path/to>/vertx-musicstore`
 
+
+== Useful stuff
+
+=== Initial dataset
+
+The initial dataset has been created with the `initdb.groovy` script located at the project root.
+It parses a https://wiki.gnome.org/Apps/Rhythmbox[Rhythmbox] database file and inserts the data into Postgres.
+
+Then it's easy to create a script for Flyway.
+
+[source,shell]
+----
+pg_dump -a --inserts -h 127.0.0.1 -U music musicdb > src/main/resources/db/migration/V2__InsertData.sql
+----
