@@ -4,6 +4,13 @@ A demo Music Store with Eclipse Vert.x and RxJava
 
 == Runnning
 
+=== The Postgres database
+
+[source,shell]
+----
+docker run --rm --name musicstore-db -e POSTGRES_USER=music -e POSTGRES_PASSWORD=music -e POSTGRES_DB=musicdb -p 5432:5432 postgres
+----
+
 === Development
 
 For fast development turnaround, create a Java application launcher in Eclipse IDE or IntelliJ:
