@@ -1,0 +1,14 @@
+= The Music Store
+
+A demo Music Store with Eclipse Vert.x and RxJava
+
+== Runnning
+
+=== Development
+
+For fast development turnaround, create a Java application launcher in Eclipse IDE or IntelliJ:
+
+* Main class: `io.vertx.core.Launcher`
+* Program arguments: `run io.vertx.demo.musicstore.MusicStoreVerticle --redeploy=**/*.class --launcher-class=io.vertx.core.Launcher`
+* Working directory: `</path/to>/vertx-musicstore`
+
