@@ -10,7 +10,9 @@
 <h2>Styles</h2>
 
 <ul>
-  <li><a href="genres/jazz.html">Jazz</a></li>
+<#list context.genres as genre>
+  <li><a href="genres/jazz.html">${genre.name}</a></li>
+</#list>
 </ul>
 
 </body>
