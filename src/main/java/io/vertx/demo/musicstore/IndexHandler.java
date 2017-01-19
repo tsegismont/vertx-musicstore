@@ -7,6 +7,7 @@ import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.sql.SQLRowStream;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
+import rx.Observable;
 
 /**
  * @author Thomas Segismont
@@ -23,11 +24,7 @@ public class IndexHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    dbClient.rxGetConnection()
-      .flatMapObservable(sqlConnection -> {
-        rc.addBodyEndHandler(v -> sqlConnection.close());
-        return sqlConnection.rxQueryStream("select g.id, g.name from genres g").flatMapObservable(SQLRowStream::toObservable);
-      })
+    findGenres(rc)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
       .reduce(new JsonArray(), JsonArray::add)
       .toSingle()
@@ -35,5 +32,13 @@ public class IndexHandler implements Handler<RoutingContext> {
         rc.put("genres", genres);
         return templateEngine.rxRender(rc, "templates/index");
       }).subscribe(rc.response()::end, rc::fail);
+  }
+
+  private Observable<JsonArray> findGenres(RoutingContext rc) {
+    return dbClient.rxGetConnection()
+      .flatMapObservable(sqlConnection -> {
+        rc.addBodyEndHandler(v -> sqlConnection.close());
+        return sqlConnection.rxQueryStream("select g.id, g.name from genres g").flatMapObservable(SQLRowStream::toObservable);
+      });
   }
 }
