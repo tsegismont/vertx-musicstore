@@ -47,6 +47,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/").handler(indexHandler);
     router.get("/index.html").handler(indexHandler);
 
+    router.get("/genres/:genreId").handler(new GenreHandler(dbClient, templateEngine));
+
     router.route().handler(staticHandler);
 
     return vertx.createHttpServer().requestHandler(router::accept).rxListen(8080).map(server -> null);

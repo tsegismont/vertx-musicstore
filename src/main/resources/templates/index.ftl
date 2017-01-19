@@ -11,7 +11,7 @@
 
 <ul>
 <#list context.genres as genre>
-  <li><a href="genres/jazz.html">${genre.name}</a></li>
+  <li><a href="/genres/${genre.id}">${genre.name}</a></li>
 </#list>
 </ul>
 
