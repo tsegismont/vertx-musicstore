@@ -37,4 +37,22 @@ WHERE t.genre_id = g.id
 ORDER BY a.name;
   ]]>
   </entry>
+  <entry key="findAlbumById"><![CDATA[
+SELECT a.title
+FROM albums a
+WHERE a.id = ?
+  ]]>
+  </entry>
+  <entry key="findTracksByAlbum"><![CDATA[
+SELECT
+  t.id,
+  t.title,
+  t.mb_track_id,
+  a.id,
+  a.name AS artist_name
+FROM tracks t, artists a
+WHERE t.artist_id = a.id
+      AND t.album_id = ?
+  ]]>
+  </entry>
 </properties>

@@ -65,6 +65,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/index.html").handler(indexHandler);
 
     router.get("/genres/:genreId").handler(new GenreHandler(dbClient, sqlQueries, templateEngine));
+    router.get("/albums/:albumId").handler(new AlbumHandler(dbClient, sqlQueries, templateEngine));
 
     router.route().handler(staticHandler);
 
