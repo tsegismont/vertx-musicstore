@@ -55,4 +55,21 @@ WHERE t.artist_id = a.id
       AND t.album_id = ?
   ]]>
   </entry>
+  <entry key="findArtistById"><![CDATA[
+SELECT a.name
+FROM artists a
+WHERE a.id = ?
+  ]]>
+  </entry>
+  <entry key="findAlbumsByArtist"><![CDATA[
+SELECT DISTINCT
+  ab.id,
+  ab.title
+FROM tracks t, albums ab, artists ar
+WHERE t.album_id = ab.id
+      AND t.artist_id = ar.id
+      AND t.artist_id = ?
+ORDER BY ab.title
+  ]]>
+  </entry>
 </properties>
