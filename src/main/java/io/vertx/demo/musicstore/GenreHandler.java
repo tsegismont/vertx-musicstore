@@ -49,7 +49,7 @@ public class GenreHandler implements Handler<RoutingContext> {
       Single<JsonArray> ars = findArtists(sqlConnection, genreId);
 
       return Single.zip(gs, als, ars, (genre, albums, artists) -> {
-        Map<String, Object> data = new HashMap<>(2);
+        Map<String, Object> data = new HashMap<>();
         data.put("genre", genre);
         data.put("albums", albums);
         data.put("artists", artists);
