@@ -10,6 +10,8 @@ import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 import rx.Single;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -44,9 +46,14 @@ public class GenreHandler implements Handler<RoutingContext> {
       Single<JsonArray> as = findArtists(sqlConnection, genreId);
 
       return Single.zip(gs, as, (genre, artists) -> {
-        rc.put("genre", genre).put("artists", artists);
-        return null;
-      }).flatMap(v -> templateEngine.rxRender(rc, "templates/genre"));
+        Map<String, Object> data = new HashMap<>(2);
+        data.put("genre", genre);
+        data.put("artists", artists);
+        return data;
+      });
+    }).flatMap(data -> {
+      data.forEach(rc::put);
+      return templateEngine.rxRender(rc, "templates/genre");
     }).subscribe(rc.response()::end, rc::fail);
   }
 
@@ -61,7 +68,7 @@ public class GenreHandler implements Handler<RoutingContext> {
     return sqlConnection.rxQueryStreamWithParams(findArtitsByGenre, new JsonArray().add(genreId))
       .flatMapObservable(SQLRowStream::toObservable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
-      .reduce(new JsonArray(), JsonArray::add)
+      .collect(JsonArray::new, JsonArray::add)
       .toSingle();
   }
 }

@@ -4,10 +4,11 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
+import io.vertx.rxjava.ext.sql.SQLConnection;
 import io.vertx.rxjava.ext.sql.SQLRowStream;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
-import rx.Observable;
+import rx.Single;
 
 import java.util.Properties;
 
@@ -28,22 +29,20 @@ public class IndexHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    findGenres(rc)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
-      .reduce(new JsonArray(), JsonArray::add)
-      .toSingle()
-      .flatMap(genres -> {
-        rc.put("genres", genres);
-        return templateEngine.rxRender(rc, "templates/index");
-      }).subscribe(rc.response()::end, rc::fail);
+    dbClient.rxGetConnection().flatMap(sqlConnection -> {
+      rc.addBodyEndHandler(v -> sqlConnection.close());
+      return findGenres(sqlConnection);
+    }).flatMap(genres -> {
+      rc.put("genres", genres);
+      return templateEngine.rxRender(rc, "templates/index");
+    }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Observable<JsonArray> findGenres(RoutingContext rc) {
-    return dbClient.rxGetConnection()
-      .flatMapObservable(sqlConnection -> {
-        rc.addBodyEndHandler(v -> sqlConnection.close());
-        return sqlConnection.rxQueryStream(findAllGenres)
-          .flatMapObservable(SQLRowStream::toObservable);
-      });
+  private Single<JsonArray> findGenres(SQLConnection sqlConnection) {
+    return sqlConnection.rxQueryStream(findAllGenres)
+      .flatMapObservable(SQLRowStream::toObservable)
+      .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
+      .collect(JsonArray::new, JsonArray::add)
+      .toSingle();
   }
 }
