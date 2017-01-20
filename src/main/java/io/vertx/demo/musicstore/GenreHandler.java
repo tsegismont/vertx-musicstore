@@ -21,12 +21,14 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private final JDBCClient dbClient;
   private final String findGenreById;
+  private final String findAlbumsByGenre;
   private final String findArtitsByGenre;
   private final FreeMarkerTemplateEngine templateEngine;
 
   public GenreHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
     findGenreById = sqlQueries.getProperty("findGenreById");
+    findAlbumsByGenre = sqlQueries.getProperty("findAlbumsByGenre");
     findArtitsByGenre = sqlQueries.getProperty("findArtitsByGenre");
     this.templateEngine = templateEngine;
   }
@@ -43,11 +45,13 @@ public class GenreHandler implements Handler<RoutingContext> {
       rc.addBodyEndHandler(v -> sqlConnection.close());
 
       Single<JsonObject> gs = findGenre(sqlConnection, genreId);
-      Single<JsonArray> as = findArtists(sqlConnection, genreId);
+      Single<JsonArray> als = findAlbums(sqlConnection, genreId);
+      Single<JsonArray> ars = findArtists(sqlConnection, genreId);
 
-      return Single.zip(gs, as, (genre, artists) -> {
+      return Single.zip(gs, als, ars, (genre, albums, artists) -> {
         Map<String, Object> data = new HashMap<>(2);
         data.put("genre", genre);
+        data.put("albums", albums);
         data.put("artists", artists);
         return data;
       });
@@ -62,6 +66,14 @@ public class GenreHandler implements Handler<RoutingContext> {
       .flatMapObservable(SQLRowStream::toObservable)
       .toSingle()
       .map(row -> new JsonObject().put("id", genreId).put("name", row.getString(0)));
+  }
+
+  private Single<JsonArray> findAlbums(SQLConnection sqlConnection, Long genreId) {
+    return sqlConnection.rxQueryStreamWithParams(findAlbumsByGenre, new JsonArray().add(genreId))
+      .flatMapObservable(SQLRowStream::toObservable)
+      .map(row -> new JsonObject().put("id", row.getLong(0)).put("title", row.getString(1)))
+      .collect(JsonArray::new, JsonArray::add)
+      .toSingle();
   }
 
   private Single<JsonArray> findArtists(SQLConnection sqlConnection, Long genreId) {
