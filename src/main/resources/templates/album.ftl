@@ -12,6 +12,7 @@
 <table>
   <thead>
   <tr>
+    <th>#</th>
     <th>Artist</th>
     <th>Title</th>
   </tr>
@@ -19,8 +20,9 @@
   <tbody>
   <#list context.tracks as track>
   <tr>
+    <td>${track.track_number}</td>
     <td><a href="/artists/${track.artist.id}">${track.artist.name}</a></td>
-    <td>${track.title}</a></td>
+    <td>${track.title}</td>
   </tr>
   </#list>
   </tbody>

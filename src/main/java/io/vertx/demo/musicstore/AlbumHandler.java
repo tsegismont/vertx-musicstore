@@ -69,11 +69,12 @@ public class AlbumHandler implements Handler<RoutingContext> {
       .map(row -> {
         return new JsonObject()
           .put("id", row.getLong(0))
-          .put("title", row.getString(1))
-          .put("mb_track_id", row.getString(2))
+          .put("track_number", row.getInteger(1))
+          .put("title", row.getString(2))
+          .put("mb_track_id", row.getString(3))
           .put("artist", new JsonObject()
-            .put("id", row.getLong(3))
-            .put("name", row.getString(4)));
+            .put("id", row.getLong(4))
+            .put("name", row.getString(5)));
       }).collect(JsonArray::new, JsonArray::add).toSingle();
   }
 }

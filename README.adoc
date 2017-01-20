@@ -32,5 +32,5 @@ Then it's easy to create a script for Flyway.
 
 [source,shell]
 ----
-pg_dump -a --inserts -h 127.0.0.1 -U music musicdb > src/main/resources/db/migration/V2__InsertData.sql
+docker exec musicstore-db pg_dump -a --inserts --exclude-table=schema_version -h 127.0.0.1 -U music musicdb > src/main/resources/db/migration/V2__InsertData.sql
 ----

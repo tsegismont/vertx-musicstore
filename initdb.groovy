@@ -19,26 +19,28 @@ Map<String, Long> genres = [:]
 Map<String, Long> artists = [:]
 Map<String, Long> albums = [:]
 
-def addGenre = { String genre ->
-  def keys = sql.executeInsert("INSERT INTO genres (name) VALUES (${genre})")
-  genres.put(genre, keys[0][0] as Long)
+def addGenre = { String name ->
+  def keys = sql.executeInsert("INSERT INTO genres (name) VALUES (${name})")
+  genres.put(name, keys[0][0] as Long)
 }
 
-def addArtist = { String artist ->
-  def keys = sql.executeInsert("INSERT INTO artists (name) VALUES (${artist})")
-  artists.put(artist, keys[0][0] as Long)
+def addArtist = { String name, UUID mbArtistId ->
+  def keys = sql.executeInsert('INSERT INTO artists (name, mb_artist_id) VALUES (?,?)', [name, mbArtistId])
+  artists.put(name, keys[0][0] as Long)
 }
 
-def addAlbum = { String album ->
-  def keys = sql.executeInsert("INSERT INTO albums (title) VALUES (${album})")
-  albums.put(album, keys[0][0] as Long)
+def addAlbum = { String title, Integer discNumber, Integer discTotal, UUID mbAlbumId ->
+  def keys = sql.executeInsert('''
+INSERT INTO albums (title, disc_number, disc_total, mb_album_id) VALUES (?,?,?,?)
+''', [title, discNumber, discTotal, mbAlbumId])
+  albums.put(title, keys[0][0] as Long)
 }
 
-def addTrack = { Long genreId, Long albumId, Long artistId, String title, String mbTrackId ->
-  sql.executeInsert("""
-INSERT INTO tracks (genre_id, album_id, artist_id, title, mb_track_id)
-VALUES (${genreId},${artistId},${albumId},${title},${mbTrackId})
-""")
+def addTrack = { long genreId, long albumId, long artistId, Integer trackNumber, Integer trackTotal, String title, UUID mbTrackId ->
+  sql.executeInsert('''
+INSERT INTO tracks (genre_id, album_id, artist_id, track_number, track_total, title, mb_track_id)
+VALUES (?,?,?,?,?,?,?)
+''', [genreId, artistId, albumId, trackNumber, trackTotal, title, mbTrackId])
 }
 
 def rhythmdbFile = "${System.getProperty('user.home')}/.local/share/rhythmbox/rhythmdb.xml"
@@ -52,19 +54,40 @@ rhythmdb.entry.each { Node entry ->
     }
 
     String artist = entry['artist'].text()
+    UUID mbArtistId
+    try {
+      mbArtistId = UUID.fromString(entry['mb-artistid'].text() as String)
+    } catch (IllegalArgumentException ignored) {
+      mbArtistId = null
+    }
     if (!artists.containsKey(artist)) {
-      addArtist(artist)
+      addArtist(artist, mbArtistId)
     }
 
     String album = entry['album'].text()
+    String discNumber = entry['disc-number'].text() as String
+    String discTotal = entry['disc-total'].text() as String
+    UUID mbAlbumId
+    try {
+      mbAlbumId = UUID.fromString(entry['mb-albumid'].text() as String)
+    } catch (IllegalArgumentException ignored) {
+      mbAlbumId = null
+    }
     if (!albums.containsKey(album)) {
-      addAlbum(album)
+      addAlbum(album, discNumber.isInteger() ? discNumber.toInteger() : null, discTotal ? discTotal.toInteger() : null, mbAlbumId)
     }
 
+    String trackNumber = entry['track-number'].text() as String
+    String trackTotal = entry['track-total'].text() as String
     String title = entry['title'].text()
-    String mbTrackId = entry['mb-trackid'].text()
+    UUID mbTrackId
+    try {
+      mbTrackId = UUID.fromString(entry['mb-trackid'].text() as String)
+    } catch (IllegalArgumentException ignored) {
+      mbTrackId = null
+    }
 
-    addTrack(genres[genre], artists[artist], albums[album], title, mbTrackId)
+    addTrack(genres[genre], artists[artist], albums[album], trackNumber.isInteger() ? trackNumber.toInteger() : null, trackTotal ? trackTotal.toInteger() : null, title, mbTrackId)
   }
 }
 

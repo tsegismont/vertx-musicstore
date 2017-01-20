@@ -46,13 +46,15 @@ WHERE a.id = ?
   <entry key="findTracksByAlbum"><![CDATA[
 SELECT
   t.id,
+  t.track_number,
   t.title,
   t.mb_track_id,
-  a.id,
-  a.name AS artist_name
-FROM tracks t, artists a
-WHERE t.artist_id = a.id
+  ar.id,
+  ar.name AS artist_name
+FROM tracks t, artists ar
+WHERE t.artist_id = ar.id
       AND t.album_id = ?
+ORDER BY t.track_number
   ]]>
   </entry>
   <entry key="findArtistById"><![CDATA[
