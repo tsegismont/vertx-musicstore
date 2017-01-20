@@ -7,7 +7,7 @@
 <body>
 <h1>Welcome to the Music Store!</h1>
 
-<h2>Styles</h2>
+<h2>Genres</h2>
 
 <ul>
 <#list context.genres as genre>

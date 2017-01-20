@@ -8,8 +8,9 @@ import io.vertx.rxjava.ext.sql.SQLConnection;
 import io.vertx.rxjava.ext.sql.SQLRowStream;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
-import rx.Observable;
 import rx.Single;
+
+import java.util.Properties;
 
 /**
  * @author Thomas Segismont
@@ -17,10 +18,14 @@ import rx.Single;
 public class GenreHandler implements Handler<RoutingContext> {
 
   private final JDBCClient dbClient;
+  private final String findGenreById;
+  private final String findArtitsByGenre;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public GenreHandler(JDBCClient dbClient, FreeMarkerTemplateEngine templateEngine) {
+  public GenreHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
+    findGenreById = sqlQueries.getProperty("findGenreById");
+    findArtitsByGenre = sqlQueries.getProperty("findArtitsByGenre");
     this.templateEngine = templateEngine;
   }
 
@@ -32,7 +37,7 @@ public class GenreHandler implements Handler<RoutingContext> {
       return;
     }
 
-    getConnection(rc).flatMap(sqlConnection -> {
+    dbClient.rxGetConnection().flatMap(sqlConnection -> {
       rc.addBodyEndHandler(v -> sqlConnection.close());
 
       Single<JsonObject> gs = findGenre(sqlConnection, genreId);
@@ -43,33 +48,20 @@ public class GenreHandler implements Handler<RoutingContext> {
         return null;
       }).flatMap(v -> templateEngine.rxRender(rc, "templates/genre"));
     }).subscribe(rc.response()::end, rc::fail);
-
   }
 
   private Single<JsonObject> findGenre(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryWithParams("SELECT g.name FROM genres g WHERE g.id = ?", new JsonArray().add(genreId))
-      .flatMapObservable(resultSet -> Observable.from(resultSet.getResults()))
+    return sqlConnection.rxQueryStreamWithParams(findGenreById, new JsonArray().add(genreId))
+      .flatMapObservable(SQLRowStream::toObservable)
       .toSingle()
       .map(row -> new JsonObject().put("id", genreId).put("name", row.getString(0)));
   }
 
   private Single<JsonArray> findArtists(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryStreamWithParams("SELECT DISTINCT\n" +
-      "  a.id,\n" +
-      "  a.name\n" +
-      "FROM tracks t, genres g, artists a\n" +
-      "WHERE t.genre_id = g.id\n" +
-      "      AND t.artist_id = a.id\n" +
-      "      AND t.genre_id = ?\n" +
-      "ORDER BY a.name;\n", new JsonArray().add(genreId))
+    return sqlConnection.rxQueryStreamWithParams(findArtitsByGenre, new JsonArray().add(genreId))
       .flatMapObservable(SQLRowStream::toObservable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
       .reduce(new JsonArray(), JsonArray::add)
       .toSingle();
-  }
-
-  private Single<SQLConnection> getConnection(RoutingContext rc) {
-    return dbClient.rxGetConnection()
-      .doOnSuccess(conn -> rc.addBodyEndHandler(v -> conn.close()));
   }
 }

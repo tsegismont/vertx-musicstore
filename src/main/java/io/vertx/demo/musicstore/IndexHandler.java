@@ -9,16 +9,20 @@ import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 import rx.Observable;
 
+import java.util.Properties;
+
 /**
  * @author Thomas Segismont
  */
 public class IndexHandler implements Handler<RoutingContext> {
 
   private final JDBCClient dbClient;
+  private final String findAllGenres;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public IndexHandler(JDBCClient dbClient, FreeMarkerTemplateEngine templateEngine) {
+  public IndexHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
+    findAllGenres = sqlQueries.getProperty("findAllGenres");
     this.templateEngine = templateEngine;
   }
 
@@ -38,7 +42,8 @@ public class IndexHandler implements Handler<RoutingContext> {
     return dbClient.rxGetConnection()
       .flatMapObservable(sqlConnection -> {
         rc.addBodyEndHandler(v -> sqlConnection.close());
-        return sqlConnection.rxQueryStream("select g.id, g.name from genres g").flatMapObservable(SQLRowStream::toObservable);
+        return sqlConnection.rxQueryStream(findAllGenres)
+          .flatMapObservable(SQLRowStream::toObservable);
       });
   }
 }

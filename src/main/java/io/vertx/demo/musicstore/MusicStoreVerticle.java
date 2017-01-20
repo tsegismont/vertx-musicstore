@@ -10,6 +10,10 @@ import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 import org.flywaydb.core.Flyway;
 import rx.Single;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 /**
  * @author Thomas Segismont
  */
@@ -25,8 +29,21 @@ public class MusicStoreVerticle extends AbstractVerticle {
     dbClient = JDBCClient.createNonShared(vertx, datasourceConfig.toJson());
     templateEngine = FreeMarkerTemplateEngine.create();
     updateDB()
-      .flatMap(v -> setupWebServer())
+      .flatMap(v -> loadQueries())
+      .flatMap(this::setupWebServer)
       .subscribe(startFuture::complete, startFuture::fail);
+  }
+
+  private Single<Properties> loadQueries() {
+    return vertx.rxExecuteBlocking(fut -> {
+      Properties sqlQueries = new Properties();
+      try (InputStream is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
+        sqlQueries.loadFromXML(is);
+        fut.complete(sqlQueries);
+      } catch (IOException e) {
+        fut.fail(e);
+      }
+    });
   }
 
   private Single<Void> updateDB() {
@@ -38,16 +55,16 @@ public class MusicStoreVerticle extends AbstractVerticle {
     });
   }
 
-  private Single<Void> setupWebServer() {
+  private Single<Void> setupWebServer(Properties sqlQueries) {
     StaticHandler staticHandler = StaticHandler.create();
 
     Router router = Router.router(vertx);
 
-    IndexHandler indexHandler = new IndexHandler(dbClient, templateEngine);
+    IndexHandler indexHandler = new IndexHandler(dbClient, sqlQueries, templateEngine);
     router.get("/").handler(indexHandler);
     router.get("/index.html").handler(indexHandler);
 
-    router.get("/genres/:genreId").handler(new GenreHandler(dbClient, templateEngine));
+    router.get("/genres/:genreId").handler(new GenreHandler(dbClient, sqlQueries, templateEngine));
 
     router.route().handler(staticHandler);
 

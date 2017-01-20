@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <entry key="findAllGenres"><![CDATA[
+SELECT
+  g.id,
+  g.name
+FROM genres g
+ORDER BY g.name
+  ]]>
+  </entry>
+  <entry key="findGenreById"><![CDATA[
+SELECT g.name
+FROM genres g
+WHERE g.id = ?
+  ]]>
+  </entry>
+  <entry key="findArtitsByGenre"><![CDATA[
+SELECT DISTINCT
+  a.id,
+  a.name
+FROM tracks t, genres g, artists a
+WHERE t.genre_id = g.id
+      AND t.artist_id = a.id
+      AND t.genre_id = ?
+ORDER BY a.name;
+  ]]>
+  </entry>
+</properties>
