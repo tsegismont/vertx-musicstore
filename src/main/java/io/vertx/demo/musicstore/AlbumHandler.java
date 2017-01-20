@@ -41,10 +41,10 @@ public class AlbumHandler implements Handler<RoutingContext> {
     dbClient.rxGetConnection().flatMap(sqlConnection -> {
       rc.addBodyEndHandler(v -> sqlConnection.close());
 
-      Single<JsonObject> gs = findAlbum(sqlConnection, albumId);
+      Single<JsonObject> as = findAlbum(sqlConnection, albumId);
       Single<JsonArray> ts = findTracks(sqlConnection, albumId);
 
-      return Single.zip(gs, ts, (album, tracks) -> {
+      return Single.zip(as, ts, (album, tracks) -> {
         Map<String, Object> data = new HashMap<>(2);
         data.put("album", album);
         data.put("tracks", tracks);
