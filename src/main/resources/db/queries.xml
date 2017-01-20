@@ -26,7 +26,7 @@ WHERE t.genre_id = g.id
 ORDER BY a.title;
   ]]>
   </entry>
-  <entry key="findArtitsByGenre"><![CDATA[
+  <entry key="findArtistsByGenre"><![CDATA[
 SELECT DISTINCT
   a.id,
   a.name

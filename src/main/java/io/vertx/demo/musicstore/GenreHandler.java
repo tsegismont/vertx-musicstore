@@ -22,14 +22,14 @@ public class GenreHandler implements Handler<RoutingContext> {
   private final JDBCClient dbClient;
   private final String findGenreById;
   private final String findAlbumsByGenre;
-  private final String findArtitsByGenre;
+  private final String findArtistsByGenre;
   private final FreeMarkerTemplateEngine templateEngine;
 
   public GenreHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
     findGenreById = sqlQueries.getProperty("findGenreById");
     findAlbumsByGenre = sqlQueries.getProperty("findAlbumsByGenre");
-    findArtitsByGenre = sqlQueries.getProperty("findArtitsByGenre");
+    findArtistsByGenre = sqlQueries.getProperty("findArtistsByGenre");
     this.templateEngine = templateEngine;
   }
 
@@ -77,7 +77,7 @@ public class GenreHandler implements Handler<RoutingContext> {
   }
 
   private Single<JsonArray> findArtists(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryStreamWithParams(findArtitsByGenre, new JsonArray().add(genreId))
+    return sqlConnection.rxQueryStreamWithParams(findArtistsByGenre, new JsonArray().add(genreId))
       .flatMapObservable(SQLRowStream::toObservable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
       .collect(JsonArray::new, JsonArray::add)
