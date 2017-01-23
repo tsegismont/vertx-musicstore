@@ -36,16 +36,16 @@ public class MusicStoreVerticle extends AbstractVerticle {
   public void start(Future<Void> startFuture) throws Exception {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createNonShared(vertx, datasourceConfig.toJson());
-    authProvider = JDBCAuth.create(dbClient);
     templateEngine = FreeMarkerTemplateEngine.create();
     updateDB()
       .flatMap(v -> loadQueries())
-      .flatMap(sqlQueries -> {
-        authProvider.setAuthenticationQuery(sqlQueries.getProperty("authenticateUser"))
+      .map(sqlQueries -> {
+        authProvider = JDBCAuth.create(dbClient)
+          .setAuthenticationQuery(sqlQueries.getProperty("authenticateUser"))
           .setRolesQuery(sqlQueries.getProperty("findRolesByUser"))
           .setPermissionsQuery(sqlQueries.getProperty("findPermissionsByUser"));
-        return setupWebServer(sqlQueries);
-      }).subscribe(startFuture::complete, startFuture::fail);
+        return sqlQueries;
+      }).flatMap(this::setupWebServer).subscribe(startFuture::complete, startFuture::fail);
   }
 
   private Single<Properties> loadQueries() {
