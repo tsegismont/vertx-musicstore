@@ -38,7 +38,9 @@ ORDER BY a.name;
   ]]>
   </entry>
   <entry key="findAlbumById"><![CDATA[
-SELECT a.title
+SELECT
+  a.title,
+  a.mb_album_id
 FROM albums a
 WHERE a.id = ?
   ]]>

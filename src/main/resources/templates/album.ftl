@@ -7,6 +7,8 @@
 <body>
 <h1>${context.album.title}</h1>
 
+<img src="/covers/${context.album.id}">
+
 <h2>Tracks</h2>
 
 <table>

@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.core.AbstractVerticle;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.web.Router;
+import io.vertx.rxjava.ext.web.client.WebClient;
 import io.vertx.rxjava.ext.web.handler.StaticHandler;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 import org.flywaydb.core.Flyway;
@@ -67,6 +68,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/genres/:genreId").handler(new GenreHandler(dbClient, sqlQueries, templateEngine));
     router.get("/albums/:albumId").handler(new AlbumHandler(dbClient, sqlQueries, templateEngine));
     router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, sqlQueries, templateEngine));
+    router.get("/covers/:albumId").handler(new CoverHandler(dbClient, sqlQueries, WebClient.create(vertx)));
 
     router.route().handler(staticHandler);
 
