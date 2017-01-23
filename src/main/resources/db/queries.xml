@@ -76,4 +76,28 @@ WHERE t.album_id = ab.id
 ORDER BY ab.title
   ]]>
   </entry>
+  <entry key="insertUser"><![CDATA[
+INSERT INTO users (username, password, password_salt) VALUES (?, ?, ?)
+  ]]>
+  </entry>
+  <entry key="authenticateUser"><![CDATA[
+SELECT
+  password,
+  password_salt
+FROM users
+WHERE username = ?
+  ]]>
+  </entry>
+  <entry key="findRolesByUser"><![CDATA[
+SELECT role
+FROM user_roles
+WHERE username = ?
+  ]]>
+  </entry>
+  <entry key="findPermissionsByUser"><![CDATA[
+SELECT rp.perm
+FROM roles_perms rp, users_roles ur
+WHERE rp.role = ur.role AND ur.username = ?
+  ]]>
+  </entry>
 </properties>

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>${context.album.title}</title>
+  <script src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+  <script src="/js/album.js"></script>
 </head>
 <body>
 <h1>${context.album.title}</h1>
@@ -29,6 +31,11 @@
   </#list>
   </tbody>
 </table>
+
+<h2>Comments</h2>
+<input type="hidden" id="album-id" value="${context.album.id}"/>
+<textarea id="new-album-comment"></textarea>
+<button id="add-album-comment">Add comment</button>
 
 </body>
 </html>
