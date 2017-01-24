@@ -31,7 +31,7 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
       return;
     }
 
-    albumCommentsBucket.query(Query.simple("select username, timestamp,comment from `album-comments` order by timestamp desc"))
+    albumCommentsBucket.query(Query.parametrized("select username, timestamp,comment from `album-comments` where albumId = $1 order by timestamp desc", com.couchbase.client.java.document.json.JsonArray.from(albumId)))
       .observeOn(RxHelper.scheduler(rc.vertx()))
       .flatMap(AsyncQueryResult::rows)
       .limit(5)

@@ -45,6 +45,7 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
     long timestamp = System.currentTimeMillis();
 
     JsonObject content = new JsonObject()
+      .put("albumId", albumId)
       .put("username", user.principal().getValue("username"))
       .put("timestamp", timestamp)
       .put("comment", comment);
