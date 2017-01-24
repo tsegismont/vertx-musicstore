@@ -2,8 +2,10 @@ package io.vertx.demo.musicstore;
 
 import com.couchbase.client.java.AsyncBucket;
 import com.couchbase.client.java.document.JsonDocument;
-import com.couchbase.client.java.document.json.JsonObject;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
+import io.vertx.rxjava.core.RxHelper;
+import io.vertx.rxjava.core.Vertx;
 import io.vertx.rxjava.ext.auth.User;
 import io.vertx.rxjava.ext.web.RoutingContext;
 
@@ -42,12 +44,20 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
 
     long timestamp = System.currentTimeMillis();
 
-    JsonObject content = JsonObject.create()
+    JsonObject content = new JsonObject()
       .put("username", user.principal().getValue("username"))
       .put("timestamp", timestamp)
       .put("comment", comment);
 
-    albumCommentsBucket.upsert(JsonDocument.create("comment::" + timestamp, content))
+    JsonDocument document = JsonDocument.create("comment::" + timestamp, com.couchbase.client.java.document.json.JsonObject.from(content.getMap()));
+    Vertx vertx = rc.vertx();
+    albumCommentsBucket.upsert(document)
+      .toSingle()
+      .observeOn(RxHelper.scheduler(vertx))
+      .doOnSuccess(doc -> vertx.setTimer(1000, v -> {
+        String address = "album." + albumId + ".comments.new";
+        vertx.eventBus().<JsonObject>publish(address, content);
+      }))
       .subscribe(doc -> rc.response().end(), rc::fail);
   }
 }

@@ -5,6 +5,8 @@
   <title>${context.album.title}</title>
   <script src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
   <script src="/js/album.js"></script>
+  <script src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+  <script src="/js/vertx-eventbus.js"></script>
 </head>
 <body>
 <h1>${context.album.title}</h1>

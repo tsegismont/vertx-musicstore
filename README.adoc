@@ -39,6 +39,15 @@ For fast development turnaround, create a Java application launcher in Eclipse I
 
 == Useful stuff
 
+=== Updating the event bus client
+
+The event bus client is stored on the VCS, but if you update the Vert.x version property, don't forget to update the event bus client as well:
+
+[source,shell]
+----
+mvn dependency:copy@copy-eventbus-client
+----
+
 === Initial dataset
 
 The initial dataset has been created with the `initdb.groovy` script located at the project root.

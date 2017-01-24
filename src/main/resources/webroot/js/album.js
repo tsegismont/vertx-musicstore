@@ -11,8 +11,6 @@ function setupAddAlbumComment() {
       url: "/api/albums/" + $("#album-id").val() + "/comments",
       data: comment,
       contentType: "text/plain"
-    }).done(function (result) {
-      alert("Saved")
     }).fail(function (result) {
       if (result.status == 401) {
         window.location.href = "/login?return_url=" + encodeURI("/albums/" + $("#album-id").val());
@@ -28,7 +26,17 @@ function loadComments() {
   $("#album-comments").load("/ajax/albums/" + $("#album-id").val() + "/comments");
 }
 
+function setupCommentListener() {
+  var eb = new EventBus(window.location.protocol + "//" + window.location.host + "/eventbus");
+  eb.onopen = function () {
+    eb.registerHandler("album." + $("#album-id").val() + ".comments.new", function (error, message) {
+      loadComments();
+    });
+  }
+}
+
 $(function () {
   setupAddAlbumComment();
   loadComments();
+  setupCommentListener();
 });

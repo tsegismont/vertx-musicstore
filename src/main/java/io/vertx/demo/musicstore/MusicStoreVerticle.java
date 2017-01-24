@@ -6,6 +6,8 @@ import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
 import com.couchbase.client.java.query.Query;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.sockjs.BridgeOptions;
+import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.rxjava.core.AbstractVerticle;
 import io.vertx.rxjava.core.RxHelper;
 import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
@@ -18,6 +20,7 @@ import io.vertx.rxjava.ext.web.handler.FormLoginHandler;
 import io.vertx.rxjava.ext.web.handler.SessionHandler;
 import io.vertx.rxjava.ext.web.handler.StaticHandler;
 import io.vertx.rxjava.ext.web.handler.UserSessionHandler;
+import io.vertx.rxjava.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.rxjava.ext.web.sstore.LocalSessionStore;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 import org.flywaydb.core.Flyway;
@@ -106,6 +109,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
   private Single<Void> setupWebServer(Properties sqlQueries) {
     Router router = Router.router(vertx);
+
+    SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
+    sockJSHandler.bridge(new BridgeOptions()
+      .addOutboundPermitted(new PermittedOptions().setAddressRegex("album\\.\\d+\\.comments\\.new")));
+    router.route("/eventbus/*").handler(sockJSHandler);
 
     router.route().handler(BodyHandler.create());
 
