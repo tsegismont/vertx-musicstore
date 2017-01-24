@@ -4,6 +4,7 @@ import com.couchbase.client.java.AsyncBucket;
 import com.couchbase.client.java.CouchbaseAsyncCluster;
 import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
 import com.couchbase.client.java.query.Query;
+import com.couchbase.client.java.query.SimpleQuery;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
@@ -37,9 +38,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
   private DatasourceConfig datasourceConfig;
   private JDBCClient dbClient;
+  private Properties dbQueries;
   private JDBCAuth authProvider;
   private CouchbaseAsyncCluster couchbaseCluster;
   private AsyncBucket albumCommentsBucket;
+  private Properties couchbaseQueries;
   private FreeMarkerTemplateEngine templateEngine;
 
   @Override
@@ -48,12 +51,14 @@ public class MusicStoreVerticle extends AbstractVerticle {
     dbClient = JDBCClient.createNonShared(vertx, datasourceConfig.toJson());
     templateEngine = FreeMarkerTemplateEngine.create();
     createCouchbaseClient()
-      .flatMap(this::openBucket).doOnSuccess(bucket -> this.albumCommentsBucket = bucket)
-      .flatMap(this::setupBucket)
+      .flatMap(v -> openBucket())
+      .flatMap(v -> loadProperties("couchbase/queries.xml")).doOnSuccess(props -> couchbaseQueries = props)
+      .flatMap(v -> setupBucket())
       .flatMap(v -> updateDB())
-      .flatMap(v -> loadQueries())
-      .map(this::setupAuthProvider)
-      .flatMap(this::setupWebServer).subscribe(startFuture::complete, startFuture::fail);
+      .flatMap(v -> loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
+      .doOnSuccess(v -> setupAuthProvider())
+      .flatMap(v -> setupWebServer())
+      .subscribe(startFuture::complete, startFuture::fail);
   }
 
   private Single<CouchbaseAsyncCluster> createCouchbaseClient() {
@@ -62,20 +67,26 @@ public class MusicStoreVerticle extends AbstractVerticle {
       couchbaseCluster = CouchbaseAsyncCluster.create(DefaultCouchbaseEnvironment.builder()
         .queryEnabled(true)
         .build(), couchbaseConfig.getNodes());
-      fut.complete(couchbaseCluster);
+      fut.complete();
     });
   }
 
-  private Single<AsyncBucket> openBucket(CouchbaseAsyncCluster cluster) {
-    return cluster.openBucket("album-comments").toSingle().observeOn(RxHelper.scheduler(vertx));
+  private Single<Void> openBucket() {
+    return couchbaseCluster.openBucket("album-comments")
+      .toSingle()
+      .observeOn(RxHelper.scheduler(vertx))
+      .doOnSuccess(bucket -> albumCommentsBucket = bucket)
+      .map(v -> (Void) null);
   }
 
-  private Single<Void> setupBucket(AsyncBucket bucket) {
-    return bucket.query(Query.simple("SELECT * FROM system:indexes WHERE name=`album-comments-pi`"))
-      .switchIfEmpty(bucket.query(Query.simple("CREATE PRIMARY INDEX `album-comments-pi` ON `album-comments` USING GSI")))
+  private Single<Void> setupBucket() {
+    SimpleQuery findPrimaryIndex = Query.simple(couchbaseQueries.getProperty("findAlbumCommentsPrimaryIndex"));
+    SimpleQuery createPrimaryIndex = Query.simple(couchbaseQueries.getProperty("createAlbumCommentsPrimaryIndex"));
+    return albumCommentsBucket.query(findPrimaryIndex)
+      .switchIfEmpty(albumCommentsBucket.query(createPrimaryIndex))
       .toSingle()
-      .map(v -> (Void) null)
-      .observeOn(RxHelper.scheduler(vertx));
+      .observeOn(RxHelper.scheduler(vertx))
+      .map(v -> (Void) null);
   }
 
   private Single<Void> updateDB() {
@@ -87,27 +98,26 @@ public class MusicStoreVerticle extends AbstractVerticle {
     });
   }
 
-  private Single<Properties> loadQueries() {
+  private Single<Properties> loadProperties(String name) {
     return vertx.rxExecuteBlocking(fut -> {
-      Properties sqlQueries = new Properties();
-      try (InputStream is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
-        sqlQueries.loadFromXML(is);
-        fut.complete(sqlQueries);
+      Properties properties = new Properties();
+      try (InputStream is = getClass().getClassLoader().getResourceAsStream(name)) {
+        properties.loadFromXML(is);
+        fut.complete(properties);
       } catch (IOException e) {
         fut.fail(e);
       }
     });
   }
 
-  private Properties setupAuthProvider(Properties sqlQueries) {
+  private void setupAuthProvider() {
     authProvider = JDBCAuth.create(dbClient)
-      .setAuthenticationQuery(sqlQueries.getProperty("authenticateUser"))
-      .setRolesQuery(sqlQueries.getProperty("findRolesByUser"))
-      .setPermissionsQuery(sqlQueries.getProperty("findPermissionsByUser"));
-    return sqlQueries;
+      .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"))
+      .setRolesQuery(dbQueries.getProperty("findRolesByUser"))
+      .setPermissionsQuery(dbQueries.getProperty("findPermissionsByUser"));
   }
 
-  private Single<Void> setupWebServer(Properties sqlQueries) {
+  private Single<Void> setupWebServer() {
     Router router = Router.router(vertx);
 
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
@@ -121,16 +131,16 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)));
     router.route().handler(UserSessionHandler.create(authProvider));
 
-    IndexHandler indexHandler = new IndexHandler(dbClient, sqlQueries, templateEngine);
+    IndexHandler indexHandler = new IndexHandler(dbClient, dbQueries, templateEngine);
     router.get("/").handler(indexHandler);
     router.get("/index.html").handler(indexHandler);
 
-    router.get("/genres/:genreId").handler(new GenreHandler(dbClient, sqlQueries, templateEngine));
-    router.get("/albums/:albumId").handler(new AlbumHandler(dbClient, sqlQueries, templateEngine));
-    router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, sqlQueries, templateEngine));
-    router.get("/covers/:albumId").handler(new CoverHandler(dbClient, sqlQueries, WebClient.create(vertx)));
+    router.get("/genres/:genreId").handler(new GenreHandler(dbClient, dbQueries, templateEngine));
+    router.get("/albums/:albumId").handler(new AlbumHandler(dbClient, dbQueries, templateEngine));
+    router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, dbQueries, templateEngine));
+    router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, WebClient.create(vertx)));
 
-    router.get("/ajax/albums/:albumId/comments").handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, templateEngine));
+    router.get("/ajax/albums/:albumId/comments").handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, couchbaseQueries, templateEngine));
 
     router.post("/api/albums/:albumId/comments").consumes("text/plain").handler(new AddAlbumCommentHandler(albumCommentsBucket));
 
@@ -139,7 +149,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.post("/login").handler(FormLoginHandler.create(authProvider));
 
     router.get("/add_user").handler(rc -> templateEngine.rxRender(rc, "templates/add_user").subscribe(rc.response()::end, rc::fail));
-    router.post("/add_user").handler(new AddUserHandler(dbClient, sqlQueries));
+    router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries));
 
     router.route().handler(StaticHandler.create());
 

@@ -10,16 +10,20 @@ import io.vertx.rxjava.core.RxHelper;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
 
+import java.util.Properties;
+
 /**
  * @author Thomas Segismont
  */
 public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
 
   private final AsyncBucket albumCommentsBucket;
+  private final String findRecentCommentsByAlbum;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public AjaxAlbumCommentsHandler(AsyncBucket albumCommentsBucket, FreeMarkerTemplateEngine templateEngine) {
+  public AjaxAlbumCommentsHandler(AsyncBucket albumCommentsBucket, Properties couchbaseQueries, FreeMarkerTemplateEngine templateEngine) {
     this.albumCommentsBucket = albumCommentsBucket;
+    this.findRecentCommentsByAlbum = couchbaseQueries.getProperty("findRecentCommentsByAlbum");
     this.templateEngine = templateEngine;
   }
 
@@ -31,7 +35,8 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
       return;
     }
 
-    albumCommentsBucket.query(Query.parametrized("select username, timestamp,comment from `album-comments` where albumId = $1 order by timestamp desc", com.couchbase.client.java.document.json.JsonArray.from(albumId)))
+    com.couchbase.client.java.document.json.JsonArray params = com.couchbase.client.java.document.json.JsonArray.from(albumId);
+    albumCommentsBucket.query(Query.parametrized(findRecentCommentsByAlbum, params))
       .observeOn(RxHelper.scheduler(rc.vertx()))
       .flatMap(AsyncQueryResult::rows)
       .limit(5)

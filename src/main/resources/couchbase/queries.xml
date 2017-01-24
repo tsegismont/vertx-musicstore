@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <entry key="findAlbumCommentsPrimaryIndex"><![CDATA[
+SELECT * FROM system:indexes WHERE name=`album-comments-pi`
+  ]]>
+  </entry>
+  <entry key="createAlbumCommentsPrimaryIndex"><![CDATA[
+CREATE PRIMARY INDEX `album-comments-pi` ON `album-comments` USING GSI
+  ]]>
+  </entry>
+  <entry key="findRecentCommentsByAlbum"><![CDATA[
+SELECT username, timestamp, comment FROM `album-comments` WHERE albumId = $1 ORDER BY timestamp DESC
+  ]]>
+  </entry>
+</properties>
