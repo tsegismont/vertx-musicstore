@@ -2,7 +2,7 @@
 <div>
   <p>
     <span style="font-style: italic;font-weight: bold">${comment.username}</span> on ${comment.timestamp?number_to_datetime}<br>
-  ${comment.comment}
+  <pre>${comment.comment}</pre>
   </p>
 </div>
 </#list>
