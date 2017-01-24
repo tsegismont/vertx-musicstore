@@ -37,5 +37,7 @@
 <textarea id="new-album-comment"></textarea>
 <button id="add-album-comment">Add comment</button>
 
+<div id="album-comments"></div>
+
 </body>
 </html>

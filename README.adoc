@@ -11,6 +11,22 @@ A demo Music Store with Eclipse Vert.x and RxJava
 docker run --rm --name musicstore-db -e POSTGRES_USER=music -e POSTGRES_PASSWORD=music -e POSTGRES_DB=musicdb -p 5432:5432 postgres
 ----
 
+=== The Couchbase server
+
+First start a development server:
+
+[source,shell]
+----
+docker run --rm --name musicstore-couchbase -p 8091-8093:8091-8093 -p 11210:11210 arungupta/couchbase
+----
+
+Then create the album comments bucket:
+
+[source,shell]
+----
+curl -X POST -u Administrator:password -d name=album-comments -d ramQuotaMB=200 -d authType=none -d proxyPort=11315 http://127.0.0.1:8091/pools/default/buckets
+----
+
 === Development
 
 For fast development turnaround, create a Java application launcher in Eclipse IDE or IntelliJ:

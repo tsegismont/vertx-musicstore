@@ -1,4 +1,4 @@
-$(function () {
+function setupAddAlbumComment() {
   $("#add-album-comment").on("click", function () {
     var comment = $("#new-album-comment").val();
     if (!comment) {
@@ -22,4 +22,13 @@ $(function () {
       console.log(result);
     });
   });
+}
+
+function loadComments() {
+  $("#album-comments").load("/ajax/albums/" + $("#album-id").val() + "/comments");
+}
+
+$(function () {
+  setupAddAlbumComment();
+  loadComments();
 });

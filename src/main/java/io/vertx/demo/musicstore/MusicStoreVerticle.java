@@ -1,8 +1,13 @@
 package io.vertx.demo.musicstore;
 
+import com.couchbase.client.java.AsyncBucket;
+import com.couchbase.client.java.CouchbaseAsyncCluster;
+import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
+import com.couchbase.client.java.query.Query;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava.core.AbstractVerticle;
+import io.vertx.rxjava.core.RxHelper;
 import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.web.Router;
@@ -30,6 +35,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
   private DatasourceConfig datasourceConfig;
   private JDBCClient dbClient;
   private JDBCAuth authProvider;
+  private CouchbaseAsyncCluster couchbaseCluster;
+  private AsyncBucket albumCommentsBucket;
   private FreeMarkerTemplateEngine templateEngine;
 
   @Override
@@ -37,15 +44,44 @@ public class MusicStoreVerticle extends AbstractVerticle {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createNonShared(vertx, datasourceConfig.toJson());
     templateEngine = FreeMarkerTemplateEngine.create();
-    updateDB()
+    createCouchbaseClient()
+      .flatMap(this::openBucket).doOnSuccess(bucket -> this.albumCommentsBucket = bucket)
+      .flatMap(this::setupBucket)
+      .flatMap(v -> updateDB())
       .flatMap(v -> loadQueries())
-      .map(sqlQueries -> {
-        authProvider = JDBCAuth.create(dbClient)
-          .setAuthenticationQuery(sqlQueries.getProperty("authenticateUser"))
-          .setRolesQuery(sqlQueries.getProperty("findRolesByUser"))
-          .setPermissionsQuery(sqlQueries.getProperty("findPermissionsByUser"));
-        return sqlQueries;
-      }).flatMap(this::setupWebServer).subscribe(startFuture::complete, startFuture::fail);
+      .map(this::setupAuthProvider)
+      .flatMap(this::setupWebServer).subscribe(startFuture::complete, startFuture::fail);
+  }
+
+  private Single<CouchbaseAsyncCluster> createCouchbaseClient() {
+    CouchbaseConfig couchbaseConfig = new CouchbaseConfig(config().getJsonObject("couchbase", new JsonObject()));
+    return vertx.rxExecuteBlocking(fut -> {
+      couchbaseCluster = CouchbaseAsyncCluster.create(DefaultCouchbaseEnvironment.builder()
+        .queryEnabled(true)
+        .build(), couchbaseConfig.getNodes());
+      fut.complete(couchbaseCluster);
+    });
+  }
+
+  private Single<AsyncBucket> openBucket(CouchbaseAsyncCluster cluster) {
+    return cluster.openBucket("album-comments").toSingle().observeOn(RxHelper.scheduler(vertx));
+  }
+
+  private Single<Void> setupBucket(AsyncBucket bucket) {
+    return bucket.query(Query.simple("SELECT * FROM system:indexes WHERE name=`album-comments-pi`"))
+      .switchIfEmpty(bucket.query(Query.simple("CREATE PRIMARY INDEX `album-comments-pi` ON `album-comments` USING GSI")))
+      .toSingle()
+      .map(v -> (Void) null)
+      .observeOn(RxHelper.scheduler(vertx));
+  }
+
+  private Single<Void> updateDB() {
+    return vertx.rxExecuteBlocking(future -> {
+      Flyway flyway = new Flyway();
+      flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
+      flyway.migrate();
+      future.complete();
+    });
   }
 
   private Single<Properties> loadQueries() {
@@ -60,13 +96,12 @@ public class MusicStoreVerticle extends AbstractVerticle {
     });
   }
 
-  private Single<Void> updateDB() {
-    return vertx.rxExecuteBlocking(future -> {
-      Flyway flyway = new Flyway();
-      flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
-      flyway.migrate();
-      future.complete();
-    });
+  private Properties setupAuthProvider(Properties sqlQueries) {
+    authProvider = JDBCAuth.create(dbClient)
+      .setAuthenticationQuery(sqlQueries.getProperty("authenticateUser"))
+      .setRolesQuery(sqlQueries.getProperty("findRolesByUser"))
+      .setPermissionsQuery(sqlQueries.getProperty("findPermissionsByUser"));
+    return sqlQueries;
   }
 
   private Single<Void> setupWebServer(Properties sqlQueries) {
@@ -87,7 +122,9 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, sqlQueries, templateEngine));
     router.get("/covers/:albumId").handler(new CoverHandler(dbClient, sqlQueries, WebClient.create(vertx)));
 
-    router.post("/api/albums/:albumId/comments").consumes("text/plain").handler(new AddAlbumCommentHandler(dbClient, authProvider));
+    router.get("/ajax/albums/:albumId/comments").handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, templateEngine));
+
+    router.post("/api/albums/:albumId/comments").consumes("text/plain").handler(new AddAlbumCommentHandler(albumCommentsBucket));
 
     router.get("/login").handler(new ReturnUrlHandler());
     router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login").subscribe(rc.response()::end, rc::fail));
@@ -99,5 +136,15 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.route().handler(StaticHandler.create());
 
     return vertx.createHttpServer().requestHandler(router::accept).rxListen(8080).map(server -> null);
+  }
+
+  @Override
+  public void stop(Future<Void> stopFuture) throws Exception {
+    vertx.<Void>rxExecuteBlocking(fut -> {
+      if (couchbaseCluster != null) {
+        couchbaseCluster.disconnect();
+      }
+      fut.complete();
+    }).subscribe(stopFuture::complete, stopFuture::fail);
   }
 }

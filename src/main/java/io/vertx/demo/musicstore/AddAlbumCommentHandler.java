@@ -1,8 +1,10 @@
 package io.vertx.demo.musicstore;
 
+import com.couchbase.client.java.AsyncBucket;
+import com.couchbase.client.java.document.JsonDocument;
+import com.couchbase.client.java.document.json.JsonObject;
 import io.vertx.core.Handler;
-import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
-import io.vertx.rxjava.ext.jdbc.JDBCClient;
+import io.vertx.rxjava.ext.auth.User;
 import io.vertx.rxjava.ext.web.RoutingContext;
 
 import static java.net.HttpURLConnection.*;
@@ -12,29 +14,40 @@ import static java.net.HttpURLConnection.*;
  */
 public class AddAlbumCommentHandler implements Handler<RoutingContext> {
 
-  private final JDBCClient dbClient;
-  private final JDBCAuth authProvider;
+  private final AsyncBucket albumCommentsBucket;
 
-  public AddAlbumCommentHandler(JDBCClient dbClient, JDBCAuth authProvider) {
-    this.dbClient = dbClient;
-    this.authProvider = authProvider;
+  public AddAlbumCommentHandler(AsyncBucket albumCommentsBucket) {
+    this.albumCommentsBucket = albumCommentsBucket;
   }
 
   @Override
   public void handle(RoutingContext rc) {
-    if (rc.user() == null) {
+    Long albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
+    if (albumId == null) {
+      rc.next();
+      return;
+    }
+
+    User user = rc.user();
+    if (user == null) {
       rc.response().setStatusCode(HTTP_UNAUTHORIZED).end();
       return;
     }
 
-    String body = rc.getBodyAsString();
-    if (body == null || body.isEmpty()) {
+    String comment = rc.getBodyAsString();
+    if (comment == null || comment.isEmpty()) {
       rc.response().setStatusCode(HTTP_BAD_REQUEST).end();
       return;
     }
 
-    // Temporary
-    // We'll store the comment in a NoSQL datastore later...
-    rc.response().end();
+    long timestamp = System.currentTimeMillis();
+
+    JsonObject content = JsonObject.create()
+      .put("username", user.principal().getValue("username"))
+      .put("timestamp", timestamp)
+      .put("comment", comment);
+
+    albumCommentsBucket.upsert(JsonDocument.create("comment::" + timestamp, content))
+      .subscribe(doc -> rc.response().end(), rc::fail);
   }
 }
