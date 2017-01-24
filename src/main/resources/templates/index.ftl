@@ -1,19 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Music Store</title>
-</head>
-<body>
+<#import "macros/page.ftl" as p>
+
+<#assign title in p>Music Store</#assign>
+
+<@p.page>
 <h1>Welcome to the Music Store!</h1>
 
 <h2>Genres</h2>
 
 <ul>
-<#list context.genres as genre>
-  <li><a href="/genres/${genre.id}">${genre.name}</a></li>
-</#list>
+  <#list context.genres as genre>
+    <li><a href="/genres/${genre.id}">${genre.name}</a></li>
+  </#list>
 </ul>
-
-</body>
-</html>
+</@p.page>

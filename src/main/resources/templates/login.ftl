@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Login</title>
-</head>
-<body>
+<#import "macros/page.ftl" as p>
+
+<#assign title in p>Login</#assign>
+
+<@p.page>
 <h1>Login</h1>
 
 <form id="login-form" action="/login" method="post">
@@ -22,6 +20,4 @@
 
 Create a
 <a href="/add_user<#if context.return_url??>?return_url=${context.return_url?url('ISO-8859-1')}</#if>">new user</a>.
-
-</body>
-</html>
+</@p.page>

@@ -1,14 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>${context.album.title}</title>
-  <script src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
-  <script src="/js/album.js"></script>
-  <script src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
-  <script src="/js/vertx-eventbus.js"></script>
-</head>
-<body>
+<#import "macros/page.ftl" as p>
+
+<#assign title in p>${context.album.title}</#assign>
+<#assign header in p>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+<script src="/js/vertx-eventbus.js"></script>
+<script src="/js/album.js"></script>
+</#assign>
+
+<@p.page>
 <h1>${context.album.title}</h1>
 
 <img src="/covers/${context.album.id}">
@@ -24,13 +24,13 @@
   </tr>
   </thead>
   <tbody>
-  <#list context.tracks as track>
-  <tr>
-    <td>${track.track_number}</td>
-    <td><a href="/artists/${track.artist.id}">${track.artist.name}</a></td>
-    <td>${track.title}</td>
-  </tr>
-  </#list>
+    <#list context.tracks as track>
+    <tr>
+      <td>${track.track_number}</td>
+      <td><a href="/artists/${track.artist.id}">${track.artist.name}</a></td>
+      <td>${track.title}</td>
+    </tr>
+    </#list>
   </tbody>
 </table>
 
@@ -40,6 +40,4 @@
 <button id="add-album-comment">Add comment</button>
 
 <div id="album-comments"></div>
-
-</body>
-</html>
+</@p.page>
