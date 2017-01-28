@@ -156,20 +156,28 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, dbQueries, templateEngine));
     router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, WebClient.create(vertx)));
 
-    router.get("/ajax/albums/:albumId/comments").handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, couchbaseQueries, templateEngine));
+    router.get("/ajax/albums/:albumId/comments")
+      .handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, couchbaseQueries, templateEngine));
 
-    router.post("/api/albums/:albumId/comments").consumes("text/plain").handler(new AddAlbumCommentHandler(albumCommentsBucket));
+    router.post("/api/albums/:albumId/comments")
+      .consumes("text/plain")
+      .handler(new AddAlbumCommentHandler(albumCommentsBucket));
 
     router.get("/login").handler(new ReturnUrlHandler());
-    router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login").subscribe(rc.response()::end, rc::fail));
+    router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login")
+      .subscribe(rc.response()::end, rc::fail));
     router.post("/login").handler(FormLoginHandler.create(authProvider));
 
-    router.get("/add_user").handler(rc -> templateEngine.rxRender(rc, "templates/add_user").subscribe(rc.response()::end, rc::fail));
+    router.get("/add_user").handler(rc -> templateEngine.rxRender(rc, "templates/add_user")
+      .subscribe(rc.response()::end, rc::fail));
     router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries));
 
     router.route().handler(StaticHandler.create());
 
-    return vertx.createHttpServer().requestHandler(router::accept).rxListen(8080).map(server -> null);
+    return vertx.createHttpServer()
+      .requestHandler(router::accept)
+      .rxListen(8080)
+      .map(server -> null);
   }
 
   @Override
