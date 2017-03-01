@@ -18,8 +18,8 @@ package io.vertx.demo.musicstore;
 
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.ext.auth.jdbc.impl.JDBCAuthImpl;
 import io.vertx.rxjava.core.MultiMap;
+import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.Session;
@@ -39,10 +39,12 @@ public class AddUserHandler implements Handler<RoutingContext> {
 
   private final JDBCClient dbClient;
   private final String insertUser;
+  private final JDBCAuth authProvider;
 
-  public AddUserHandler(JDBCClient dbClient, Properties sqlQueries) {
+  public AddUserHandler(JDBCClient dbClient, Properties sqlQueries, JDBCAuth authProvider) {
     this.dbClient = dbClient;
     insertUser = sqlQueries.getProperty("insertUser");
+    this.authProvider = authProvider;
   }
 
   @Override
@@ -71,8 +73,8 @@ public class AddUserHandler implements Handler<RoutingContext> {
       byte[] salt = new byte[32];
       r.nextBytes(salt);
 
-      String password_salt = JDBCAuthImpl.bytesToHex(salt);
-      String hashedPassword = JDBCAuthImpl.computeHash(password, password_salt, "SHA-512");
+      String password_salt = authProvider.generateSalt();
+      String hashedPassword = authProvider.computeHash(password, password_salt);
 
       JsonArray insertParams = new JsonArray()
         .add(username).add(hashedPassword).add(password_salt);

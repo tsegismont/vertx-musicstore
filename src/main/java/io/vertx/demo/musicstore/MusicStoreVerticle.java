@@ -127,7 +127,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private void setupAuthProvider() {
-    authProvider = JDBCAuth.create(dbClient)
+    authProvider = JDBCAuth.create(vertx, dbClient)
       .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"))
       .setRolesQuery(dbQueries.getProperty("findRolesByUser"))
       .setPermissionsQuery(dbQueries.getProperty("findPermissionsByUser"));
@@ -170,7 +170,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
     router.get("/add_user").handler(rc -> templateEngine.rxRender(rc, "templates/add_user")
       .subscribe(rc.response()::end, rc::fail));
-    router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries));
+    router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries, authProvider));
 
     router.route().handler(StaticHandler.create());
 
