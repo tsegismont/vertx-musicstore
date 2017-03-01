@@ -11,7 +11,7 @@
 <@p.page>
 <h1>${context.album.title}</h1>
 
-<img src="/covers/${context.album.id}">
+<img width="600" src="/covers/${context.album.id}">
 
 <h2>Tracks</h2>
 
