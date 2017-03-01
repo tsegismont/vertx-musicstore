@@ -2,8 +2,8 @@
 
 <#assign title in p>${context.album.title}</#assign>
 <#assign header in p>
-<script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+<script src="/js/jquery-3.1.1.min.js"></script>
+<script src="/js/sockjs.min.js"></script>
 <script src="/js/vertx-eventbus.js"></script>
 <script src="/js/album.js"></script>
 </#assign>
