@@ -23,7 +23,6 @@ import com.couchbase.client.java.query.Query;
 import com.couchbase.client.java.query.SimpleQuery;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.rxjava.core.AbstractVerticle;
@@ -155,8 +154,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/genres/:genreId").handler(new GenreHandler(dbClient, dbQueries, templateEngine));
     router.get("/albums/:albumId").handler(new AlbumHandler(dbClient, dbQueries, templateEngine));
     router.get("/artists/:artistId").handler(new ArtistHandler(dbClient, dbQueries, templateEngine));
-    WebClient webClient = WebClient.create(vertx, new WebClientOptions().setFollowRedirects(false));
-    router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, webClient));
+    router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, WebClient.create(vertx)));
 
     router.get("/ajax/albums/:albumId/comments")
       .handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, couchbaseQueries, templateEngine));

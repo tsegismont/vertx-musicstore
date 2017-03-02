@@ -81,30 +81,8 @@ public class CoverHandler implements Handler<RoutingContext> {
             .uri("/release/" + album.getString("mbAlbumId") + "/front")
             .as(BodyCodec.buffer())
             .rxSend();
-        }).flatMap(httpResponse -> followRedirect(webClient, httpResponse, 0));
+        }).map(HttpResponse::body);
     });
-  }
-
-  private Single<Buffer> followRedirect(WebClient webClient, HttpResponse<Buffer> httpResponse, int step) {
-    if (step > 5) {
-      return Single.error(new RuntimeException("Too many redirects"));
-    }
-    switch (httpResponse.statusCode()) {
-      case 200:
-        return Single.just(httpResponse.body());
-      case 301:
-      case 302:
-      case 303:
-      case 307:
-      case 308:
-        return webClient.getAbs(httpResponse.getHeader("Location"))
-          .putHeader("User-Agent", USER_AGENT)
-          .as(BodyCodec.buffer())
-          .rxSend()
-          .flatMap(res -> followRedirect(webClient, res, step + 1));
-      default:
-        return Single.just(Buffer.buffer());
-    }
   }
 
   private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
