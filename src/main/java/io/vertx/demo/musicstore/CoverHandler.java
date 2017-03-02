@@ -75,10 +75,14 @@ public class CoverHandler implements Handler<RoutingContext> {
 
       return findAlbum(sqlConnection, albumId)
         .flatMap(album -> {
+          String mbAlbumId = album.getString("mbAlbumId");
+          if (mbAlbumId == null) {
+            return Single.error(new RuntimeException("Music Brainz Album Id not found"));
+          }
           return webClient
             .getAbs("http://coverartarchive.org")
             .putHeader("User-Agent", USER_AGENT)
-            .uri("/release/" + album.getString("mbAlbumId") + "/front")
+            .uri("/release/" + mbAlbumId + "/front")
             .as(BodyCodec.buffer())
             .rxSend();
         }).map(HttpResponse::body);
