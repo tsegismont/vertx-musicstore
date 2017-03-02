@@ -64,7 +64,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> startFuture) throws Exception {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
-    dbClient = JDBCClient.createNonShared(vertx, datasourceConfig.toJson());
+    dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
     templateEngine = FreeMarkerTemplateEngine.create();
     createCouchbaseClient()
       .flatMap(v -> openBucket())
