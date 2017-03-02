@@ -36,7 +36,6 @@ import java.util.Properties;
  * @author Thomas Segismont
  */
 public class CoverHandler implements Handler<RoutingContext> {
-  private static final String USER_AGENT = "MusicStoreDemo ( https://github.com/tsegismont/vertx-musicstore )";
 
   private final JDBCClient dbClient;
   private final String findAlbumById;
@@ -81,7 +80,6 @@ public class CoverHandler implements Handler<RoutingContext> {
           }
           return webClient
             .getAbs("http://coverartarchive.org")
-            .putHeader("User-Agent", USER_AGENT)
             .uri("/release/" + mbAlbumId + "/front")
             .as(BodyCodec.buffer())
             .rxSend();
