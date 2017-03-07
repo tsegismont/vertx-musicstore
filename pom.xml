@@ -31,7 +31,7 @@
     If you update this, remember to update the event bus client as well with:
     mvn dependency:copy@copy-eventbus-client
     -->
-    <vertx-stack.version>3.4.0-SNAPSHOT</vertx-stack.version>
+    <vertx-stack.version>3.4.0.Beta1</vertx-stack.version>
   </properties>
 
   <dependencyManagement>
