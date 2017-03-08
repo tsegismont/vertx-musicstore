@@ -23,6 +23,8 @@ import com.couchbase.client.java.query.Query;
 import com.couchbase.client.java.query.SimpleQuery;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.demo.musicstore.sharedresource.SharedResource;
+import io.vertx.demo.musicstore.sharedresource.SharedResources;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.rxjava.core.AbstractVerticle;
@@ -56,8 +58,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
   private JDBCClient dbClient;
   private Properties dbQueries;
   private JDBCAuth authProvider;
-  private CouchbaseAsyncCluster couchbaseCluster;
-  private AsyncBucket albumCommentsBucket;
+  private SharedResource<CouchbaseAsyncCluster> couchbaseCluster;
+  private SharedResource<AsyncBucket> albumCommentsBucket;
   private Properties couchbaseQueries;
   private FreeMarkerTemplateEngine templateEngine;
 
@@ -66,8 +68,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
     templateEngine = FreeMarkerTemplateEngine.create();
-    createCouchbaseClient()
-      .flatMap(v -> openBucket())
+    createCouchbaseClient().doOnSuccess(cluster -> couchbaseCluster = cluster)
+      .flatMap(v -> openBucket()).doOnSuccess(bucket -> albumCommentsBucket = bucket)
       .flatMap(v -> loadProperties("couchbase/queries.xml")).doOnSuccess(props -> couchbaseQueries = props)
       .flatMap(v -> setupBucket())
       .flatMap(v -> updateDB())
@@ -77,29 +79,36 @@ public class MusicStoreVerticle extends AbstractVerticle {
       .subscribe(startFuture::complete, startFuture::fail);
   }
 
-  private Single<CouchbaseAsyncCluster> createCouchbaseClient() {
+  private Single<SharedResource<CouchbaseAsyncCluster>> createCouchbaseClient() {
     CouchbaseConfig couchbaseConfig = new CouchbaseConfig(config().getJsonObject("couchbase", new JsonObject()));
     return vertx.rxExecuteBlocking(fut -> {
-      couchbaseCluster = CouchbaseAsyncCluster.create(DefaultCouchbaseEnvironment.builder()
-        .queryEnabled(true)
-        .build(), couchbaseConfig.getNodes());
-      fut.complete();
+      SharedResources sharedResources = SharedResources.INSTANCE;
+      SharedResource<CouchbaseAsyncCluster> couchbaseCluster = sharedResources.getOrCreate("couchbaseCluster", () -> {
+        return CouchbaseAsyncCluster.create(DefaultCouchbaseEnvironment.builder()
+          .queryEnabled(true)
+          .build(), couchbaseConfig.getNodes());
+      }, CouchbaseAsyncCluster::disconnect);
+      fut.complete(couchbaseCluster);
     });
   }
 
-  private Single<Void> openBucket() {
-    return couchbaseCluster.openBucket("album-comments")
-      .toSingle()
-      .observeOn(RxHelper.scheduler(vertx))
-      .doOnSuccess(bucket -> albumCommentsBucket = bucket)
-      .map(v -> (Void) null);
+  private Single<SharedResource<AsyncBucket>> openBucket() {
+    return vertx.rxExecuteBlocking(fut -> {
+      SharedResources sharedResources = SharedResources.INSTANCE;
+      SharedResource<AsyncBucket> asyncBucket = sharedResources.getOrCreate("commentsBucket", () -> {
+        return couchbaseCluster.get().openBucket("album-comments").toSingle().toBlocking().value();
+      }, bucket -> {
+        bucket.close().toSingle().toBlocking().value();
+      });
+      fut.complete(asyncBucket);
+    });
   }
 
   private Single<Void> setupBucket() {
     SimpleQuery findPrimaryIndex = Query.simple(couchbaseQueries.getProperty("findAlbumCommentsPrimaryIndex"));
     SimpleQuery createPrimaryIndex = Query.simple(couchbaseQueries.getProperty("createAlbumCommentsPrimaryIndex"));
-    return albumCommentsBucket.query(findPrimaryIndex)
-      .switchIfEmpty(albumCommentsBucket.query(createPrimaryIndex))
+    return albumCommentsBucket.get().query(findPrimaryIndex)
+      .switchIfEmpty(albumCommentsBucket.get().query(createPrimaryIndex))
       .toSingle()
       .observeOn(RxHelper.scheduler(vertx))
       .map(v -> (Void) null);
@@ -157,11 +166,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, WebClient.create(vertx)));
 
     router.get("/ajax/albums/:albumId/comments")
-      .handler(new AjaxAlbumCommentsHandler(albumCommentsBucket, couchbaseQueries, templateEngine));
+      .handler(new AjaxAlbumCommentsHandler(albumCommentsBucket.get(), couchbaseQueries, templateEngine));
 
     router.post("/api/albums/:albumId/comments")
       .consumes("text/plain")
-      .handler(new AddAlbumCommentHandler(albumCommentsBucket));
+      .handler(new AddAlbumCommentHandler(albumCommentsBucket.get()));
 
     router.get("/login").handler(new ReturnUrlHandler());
     router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login")
@@ -184,9 +193,12 @@ public class MusicStoreVerticle extends AbstractVerticle {
   public void stop(Future<Void> stopFuture) throws Exception {
     vertx.<Void>rxExecuteBlocking(fut -> {
       if (couchbaseCluster != null) {
-        couchbaseCluster.disconnect();
+        couchbaseCluster.release();
       }
       fut.complete();
+    }).onErrorReturn(throwable -> {
+      throwable.printStackTrace();
+      return null;
     }).subscribe(stopFuture::complete, stopFuture::fail);
   }
 }
