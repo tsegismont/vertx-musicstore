@@ -63,16 +63,15 @@ public class CoverHandler implements Handler<RoutingContext> {
       return;
     }
 
-    download(rc, albumId)
+    download(albumId)
       .doOnSuccess(buffer -> covers.put(albumId, buffer.getDelegate()))
       .subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<Buffer> download(RoutingContext rc, Long albumId) {
+  private Single<Buffer> download(Long albumId) {
     return dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      rc.addBodyEndHandler(v -> sqlConnection.close());
-
       return findAlbum(sqlConnection, albumId)
+        .doAfterTerminate(sqlConnection::close)
         .flatMap(album -> {
           String mbAlbumId = album.getString("mbAlbumId");
           if (mbAlbumId == null) {

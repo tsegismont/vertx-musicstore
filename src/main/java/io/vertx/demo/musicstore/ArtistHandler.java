@@ -55,8 +55,6 @@ public class ArtistHandler implements Handler<RoutingContext> {
     }
 
     dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      rc.addBodyEndHandler(v -> sqlConnection.close());
-
       Single<JsonObject> ars = findArtist(sqlConnection, artistId);
       Single<JsonArray> als = findAlbums(sqlConnection, artistId);
 
@@ -65,7 +63,8 @@ public class ArtistHandler implements Handler<RoutingContext> {
         data.put("artist", artist);
         data.put("albums", albums);
         return data;
-      });
+      }).doAfterTerminate(sqlConnection::close);
+
     }).flatMap(data -> {
       data.forEach(rc::put);
       return templateEngine.rxRender(rc, "templates/artist");

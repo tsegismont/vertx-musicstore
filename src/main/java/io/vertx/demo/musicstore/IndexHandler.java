@@ -46,8 +46,7 @@ public class IndexHandler implements Handler<RoutingContext> {
   @Override
   public void handle(RoutingContext rc) {
     dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      rc.addBodyEndHandler(v -> sqlConnection.close());
-      return findGenres(sqlConnection);
+      return findGenres(sqlConnection).doAfterTerminate(sqlConnection::close);
     }).flatMap(genres -> {
       rc.put("genres", genres);
       return templateEngine.rxRender(rc, "templates/index");

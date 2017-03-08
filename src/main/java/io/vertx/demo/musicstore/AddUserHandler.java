@@ -82,9 +82,7 @@ public class AddUserHandler implements Handler<RoutingContext> {
       fut.complete(insertParams);
     }).flatMap(insertParams -> {
       return dbClient.rxGetConnection().flatMap(sqlConnection -> {
-        rc.addBodyEndHandler(v -> sqlConnection.close());
-
-        return sqlConnection.rxUpdateWithParams(insertUser, insertParams);
+        return sqlConnection.rxUpdateWithParams(insertUser, insertParams).doAfterTerminate(sqlConnection::close);
       });
     }).subscribe(updateResult -> {
       StringBuilder location = new StringBuilder("/login");
