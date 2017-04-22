@@ -17,7 +17,7 @@
   if (typeof require === 'function' && typeof module !== 'undefined') {
     // CommonJS loader
     var SockJS = require('sockjs-client');
-    if (!SockJS) {
+    if(!SockJS) {
       throw new Error('vertx-eventbus.js requires sockjs-client, see http://sockjs.org');
     }
     factory(SockJS);
@@ -42,7 +42,7 @@
 
   function mergeHeaders(defaultHeaders, headers) {
     if (defaultHeaders) {
-      if (!headers) {
+      if(!headers) {
         return defaultHeaders;
       }
 

@@ -20,6 +20,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.auth.jdbc.impl.JDBCAuthImpl;
 import io.vertx.rxjava.core.MultiMap;
+import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
 import io.vertx.rxjava.ext.jdbc.JDBCClient;
 import io.vertx.rxjava.ext.web.RoutingContext;
 import io.vertx.rxjava.ext.web.Session;
@@ -71,8 +72,11 @@ public class AddUserHandler implements Handler<RoutingContext> {
       byte[] salt = new byte[32];
       r.nextBytes(salt);
 
-      String password_salt = JDBCAuthImpl.bytesToHex(salt);
-      String hashedPassword = JDBCAuthImpl.computeHash(password, password_salt, "SHA-512");
+      //updated for stack 3.4.1
+      JDBCAuth jdbcAuth = JDBCAuth.create(rc.vertx(),dbClient);
+
+      String password_salt = jdbcAuth.generateSalt();
+      String hashedPassword = jdbcAuth.computeHash(password, password_salt);
 
       JsonArray insertParams = new JsonArray()
         .add(username).add(hashedPassword).add(password_salt);

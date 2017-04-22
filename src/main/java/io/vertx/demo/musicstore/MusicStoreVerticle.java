@@ -127,7 +127,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private void setupAuthProvider() {
-    authProvider = JDBCAuth.create(dbClient)
+    //updated for stack 3.4.1
+    authProvider = JDBCAuth.create(vertx,dbClient)
       .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"))
       .setRolesQuery(dbQueries.getProperty("findRolesByUser"))
       .setPermissionsQuery(dbQueries.getProperty("findPermissionsByUser"));
