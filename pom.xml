@@ -25,14 +25,11 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
+        <!-- https://github.com/kameshsampath/vertx-musicstore#development #1 Main Class-->
         <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <!--
-        If you update this, remember to update the event bus client as well with:
-        mvn dependency:copy@copy-eventbus-client
-        -->
         <vertx-stack.version>3.4.1</vertx-stack.version>
         <vertx-maven-plugin.version>1.0.7</vertx-maven-plugin.version>
     </properties>
@@ -61,6 +58,14 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web-client</artifactId>
+        </dependency>
+        <!-- copy vertx-web client javascript -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>${vertx-stack.version}</version>
+            <classifier>client</classifier>
+            <type>js</type>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
@@ -113,31 +118,6 @@
             <build>
                 <plugins>
                     <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>copy-eventbus-client</id>
-                                <goals>
-                                    <goal>copy</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>io.vertx</groupId>
-                                            <artifactId>vertx-web</artifactId>
-                                            <version>${vertx-stack.version}</version>
-                                            <classifier>client</classifier>
-                                            <type>js</type>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>src/main/resources/webroot/js</outputDirectory>
-                                            <destFileName>vertx-eventbus.js</destFileName>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>vertx-maven-plugin</artifactId>
                         <version>${vertx-maven-plugin.version}</version>
@@ -150,11 +130,15 @@
                             </execution>
                         </executions>
                         <configuration>
+                            <!--  directory where to copy the vertx-web-client js a.k.a vertx-eventbus.js files-->
+                            <webRoot>target/classes/webroot/js</webRoot>
                             <jvmArgs>
+                                <!-- https://github.com/kameshsampath/vertx-musicstore#development #2 VM Options-->
                                 <jvmArg>
                                     -Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory
                                 </jvmArg>
                             </jvmArgs>
+                            <!-- https://github.com/kameshsampath/vertx-musicstore#development #3 Program Arguments-->
                             <redeploy>true</redeploy>
                         </configuration>
                     </plugin>
