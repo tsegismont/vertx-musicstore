@@ -2,9 +2,9 @@
 
 <#assign title in p>${context.album.title}</#assign>
 <#assign header in p>
-<script src="/js/jquery-3.1.1.min.js"></script>
+<script src="/js/jquery/jquery.min.js"></script>
 <script src="/js/sockjs.min.js"></script>
-<script src="/js/vertx-eventbus.js"></script>
+<script src="/js/vertx-web-client.js"></script>
 <script src="/js/album.js"></script>
 </#assign>
 
