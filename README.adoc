@@ -29,12 +29,14 @@ curl -X POST -u Administrator:password -d name=album-comments -d ramQuotaMB=200 
 
 === Development
 
-For fast development turnaround, create a Java application launcher in Eclipse IDE or IntelliJ:
+* Do one time build to pull the dependencies `mvn clean install`
+* To run the application in foreground do `mvn vertx:run` with redeploy enabled and uses `io.vertx.core.logging.SLF4JLogDelegateFactory`
+* To run the applicaiton in background mode i.e. vertx start do `mvn vertx:start`
 
-* Main class: `io.vertx.core.Launcher`
-* VM options: `-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory`
-* Program arguments: `run io.vertx.demo.musicstore.MusicStoreVerticle --redeploy=target/**/* --launcher-class=io.vertx.core.Launcher`
-* Working directory: `</path/to>/vertx-musicstore`
+Check https://vmp.fabric8.io[fabric8 vertx-maven-plugin] for more information and
+examples on using fabric8 vertx-maven-plugin
+
+video::X_G_plK-UG8[youtube]
 
 
 == Useful stuff
