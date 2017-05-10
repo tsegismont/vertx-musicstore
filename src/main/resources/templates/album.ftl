@@ -5,7 +5,6 @@
 <link href="css/base.css" rel="stylesheet">
 </#assign>
 <#assign scripts in p>
-<script src="/js/jquery/jquery.min.js"></script>
 <script src="/js/sockjs-client/sockjs.min.js"></script>
 <script src="/js/vertx-web-client.js"></script>
 <script src="/js/album.js"></script>
