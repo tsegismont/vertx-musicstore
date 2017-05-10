@@ -27,7 +27,7 @@
       <div class="col-md-4">
         <h2>${genre.name}</h2>
         <p>Donec id elit non mi porta gravida at eget metus.</p>
-        <p><a class="btn btn-default" href="/genres/${genre.id}" role="button">Go &raquo;</a></p>
+        <p><a class="btn btn-primary" href="/genres/${genre.id}" role="button">Explore &raquo;</a></p>
       </div>
     </#list>
   </div>
