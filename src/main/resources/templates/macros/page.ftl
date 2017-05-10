@@ -18,7 +18,7 @@
 <nav class="navbar navbar-inverse navbar-fixed-top">
   <div class="container">
     <div class="navbar-header">
-      <span class="navbar-brand">Vert.x Music Store</span>
+      <a class="navbar-brand" href="/">Vert.x Music Store</a>
     </div>
   </div>
 </nav>
