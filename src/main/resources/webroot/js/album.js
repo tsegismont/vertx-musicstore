@@ -21,6 +21,7 @@ function setupAddAlbumComment() {
       alert("Please enter some text!");
       return;
     }
+    $("#new-album-comment").val(""); //reset
 
     $.ajax({
       type: "POST",
