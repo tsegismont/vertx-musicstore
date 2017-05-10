@@ -6,13 +6,26 @@
 </#assign>
 
 <@p.page>
-<h1>${context.artist.name}</h1>
 
-<h2>Albums</h2>
+<div class="container">
+  <div class="title">
+    <h1>${context.artist.name}</h1>
+  </div>
+</div>
 
-<ul>
-  <#list context.albums as album>
-    <li><a href="/albums/${album.id}">${album.title}</a></li>
-  </#list>
-</ul>
+<div class="container">
+  <div class="title">
+    <h2>Albums</h2>
+  </div>
+  <div class="row">
+    <#list context.albums as album>
+      <div class="col-md-4">
+        <h2>${album.title}</h2>
+        <p>Donec id elit non mi porta gravida at eget metus.</p>
+        <p><a class="btn btn-primary" href="/albums/${album.id}" role="button">Select &raquo;</a></p>
+      </div>
+    </#list>
+  </div>
+</div>
+
 </@p.page>
