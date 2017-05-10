@@ -1,23 +1,28 @@
 <#import "macros/page.ftl" as p>
 
 <#assign title in p>Login</#assign>
+<#assign header in p>
+<link href="css/login.css" rel="stylesheet">
+</#assign>
 
 <@p.page>
-<h1>Login</h1>
 
-<form id="login-form" action="/login" method="post">
-  <label>
-    Username:
-    <input name="username" value="${context.username!}">
-  </label>
-  <label>
-    Password:
-    <input type="password" name="password">
-  </label>
-  <input type="hidden" name="return_url" value="${context.return_url!}">
-  <input type="submit" value="Submit">
-</form>
+<div class="container">
 
-Create a
-<a href="/add_user<#if context.return_url??>?return_url=${context.return_url?url('ISO-8859-1')}</#if>">new user</a>.
+  <form class="form-login" action="/login" method="post">
+    <h2 class="form-login-heading">Please sign in</h2>
+    <label for="inputUsername" class="sr-only">Username</label>
+    <input name="username" type="text" id="inputUsername" class="form-control" placeholder="Username" required autofocus>
+    <label for="inputPassword" class="sr-only">Password</label>
+    <input name="password" type="password" id="inputPassword" class="form-control form-last-input" placeholder="Password" required>
+    <input type="hidden" name="return_url" value="${context.return_url!}">
+    <div>
+      Create a
+      <a href="/add_user<#if context.return_url??>?return_url=${context.return_url?url('ISO-8859-1')}</#if>">new user</a>.
+    </div>
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+  </form>
+
+</div>
+
 </@p.page>
