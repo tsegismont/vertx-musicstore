@@ -1,4 +1,4 @@
-<#import "macros/page.ftl" as p>
+<#import "macros/loginpage.ftl" as p>
 
 <#assign title in p>Login</#assign>
 <#assign links in p>
