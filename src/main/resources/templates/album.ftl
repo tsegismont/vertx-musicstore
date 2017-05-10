@@ -2,7 +2,7 @@
 
 <#assign title in p>${context.album.title}</#assign>
 <#assign links in p>
-<link href="css/base.css" rel="stylesheet">
+<link href="/css/base.css" rel="stylesheet">
 </#assign>
 <#assign scripts in p>
 <script src="/js/sockjs-client/sockjs.min.js"></script>

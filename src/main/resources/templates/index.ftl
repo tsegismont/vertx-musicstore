@@ -2,7 +2,7 @@
 
 <#assign title in p>Music Store</#assign>
 <#assign links in p>
-<link href="css/base.css" rel="stylesheet">
+<link href="/css/base.css" rel="stylesheet">
 </#assign>
 
 <@p.page>

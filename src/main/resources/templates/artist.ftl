@@ -2,7 +2,7 @@
 
 <#assign title in p>${context.artist.name}</#assign>
 <#assign links in p>
-<link href="css/base.css" rel="stylesheet">
+<link href="/css/base.css" rel="stylesheet">
 </#assign>
 
 <@p.page>
