@@ -50,6 +50,8 @@ function setupCommentListener() {
   };
   eb.onopen = function () {
     eb.registerHandler("album." + $("#album-id").val() + ".comments.new", function (error, message) {
+      var body = message.body;
+      $.notify(body.username + " : " + body.comment, "info");
       loadComments();
     });
   };
