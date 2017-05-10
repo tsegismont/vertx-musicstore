@@ -1,6 +1,9 @@
 <#import "macros/page.ftl" as p>
 
 <#assign title in p>${context.genre.name}</#assign>
+<#assign links in p>
+<link href="css/base.css" rel="stylesheet">
+</#assign>
 
 <@p.page>
 <h1>${context.genre.name}</h1>

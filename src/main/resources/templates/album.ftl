@@ -1,6 +1,9 @@
 <#import "macros/page.ftl" as p>
 
 <#assign title in p>${context.album.title}</#assign>
+<#assign links in p>
+<link href="css/base.css" rel="stylesheet">
+</#assign>
 <#assign scripts in p>
 <script src="/js/jquery/jquery.min.js"></script>
 <script src="/js/sockjs-client/sockjs.min.js"></script>

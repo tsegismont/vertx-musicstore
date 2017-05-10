@@ -15,6 +15,13 @@
   </#if>
 </head>
 <body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <span class="navbar-brand">Vert.x Music Store</span>
+    </div>
+  </div>
+</nav>
   <#nested>
 </body>
 </html>
