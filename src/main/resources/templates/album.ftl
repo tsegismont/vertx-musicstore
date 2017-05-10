@@ -1,7 +1,7 @@
 <#import "macros/page.ftl" as p>
 
 <#assign title in p>${context.album.title}</#assign>
-<#assign header in p>
+<#assign scripts in p>
 <script src="/js/jquery/jquery.min.js"></script>
 <script src="/js/sockjs-client/sockjs.min.js"></script>
 <script src="/js/vertx-web-client.js"></script>

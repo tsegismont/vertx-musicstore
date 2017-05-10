@@ -1,7 +1,7 @@
 <#import "macros/page.ftl" as p>
 
 <#assign title in p>Login</#assign>
-<#assign header in p>
+<#assign links in p>
 <link href="css/login.css" rel="stylesheet">
 </#assign>
 
