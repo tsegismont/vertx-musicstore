@@ -1,6 +1,18 @@
 = The Music Store
+:figure-caption!:
 
 A demo Music Store with Eclipse Vert.x and RxJava
+
+[.float-group]
+--
+[.left]
+.Welcome Page
+image::welcome-page.png[Welcome,460]
+
+[.left]
+.Album page
+image::album-page.png[Album,460]
+--
 
 == Runnning
 
