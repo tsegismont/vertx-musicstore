@@ -20,6 +20,18 @@ image::album-page.png[Album]
 
 == Runnning
 
+If you only want to try the application without modifying it, run the build and start the components with `docker-compose`.
+
+[source,shell]
+----
+mvn clean package
+docker-compose up
+----
+
+When all components are up browse to http://localhost:8080.
+
+Otherwise start each component individually.
+
 === The Postgres database
 
 [source,shell]
@@ -53,7 +65,6 @@ Check https://vmp.fabric8.io[fabric8 vertx-maven-plugin] for more information an
 examples on using fabric8 vertx-maven-plugin
 
 video::X_G_plK-UG8[youtube]
-
 
 == Useful stuff
 
