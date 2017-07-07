@@ -1,0 +1,22 @@
+version: '2'
+services:
+  vertx-musicstore:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "postgres"
+      - "couchbase"
+  postgres:
+    image: "postgres"
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=music
+      - POSTGRES_PASSWORD=music
+      - POSTGRES_DB=musicdb
+  couchbase:
+    ports:
+      - "8091-8093:8091-8093"
+      - "11210:11210"
+    image: "arungupta/couchbase"
