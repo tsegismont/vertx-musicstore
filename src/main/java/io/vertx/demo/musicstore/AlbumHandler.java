@@ -16,15 +16,15 @@
 
 package io.vertx.demo.musicstore;
 
+import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.rxjava.ext.jdbc.JDBCClient;
-import io.vertx.rxjava.ext.sql.SQLConnection;
-import io.vertx.rxjava.ext.sql.SQLRowStream;
-import io.vertx.rxjava.ext.web.RoutingContext;
-import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
-import rx.Single;
+import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.sql.SQLConnection;
+import io.vertx.reactivex.ext.sql.SQLRowStream;
+import io.vertx.reactivex.ext.web.RoutingContext;
+import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -73,9 +73,9 @@ public class AlbumHandler implements Handler<RoutingContext> {
 
   private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
     return sqlConnection.rxQueryStreamWithParams(findAlbumById, new JsonArray().add(albumId))
-      .flatMapObservable(SQLRowStream::toObservable)
-      .toSingle()
-      .map(row -> new JsonObject().put("id", albumId).put("title", row.getString(0)));
+      .flatMapPublisher(SQLRowStream::toFlowable)
+      .map(row -> new JsonObject().put("id", albumId).put("title", row.getString(0)))
+      .singleOrError();
   }
 
   private Single<JsonArray> findTracks(SQLConnection sqlConnection, Long albumId) {
@@ -90,6 +90,6 @@ public class AlbumHandler implements Handler<RoutingContext> {
           .put("artist", new JsonObject()
             .put("id", row.getLong(4))
             .put("name", row.getString(5)));
-      }).collect(JsonArray::new, JsonArray::add).toSingle();
+      }).collect(JsonArray::new, JsonArray::add);
   }
 }

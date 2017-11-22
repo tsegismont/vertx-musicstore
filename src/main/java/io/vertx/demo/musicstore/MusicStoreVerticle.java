@@ -21,29 +21,32 @@ import com.couchbase.client.java.CouchbaseAsyncCluster;
 import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
 import com.couchbase.client.java.query.Query;
 import com.couchbase.client.java.query.SimpleQuery;
+import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.Completable;
+import io.reactivex.Single;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.sharedresource.SharedResource;
 import io.vertx.demo.musicstore.sharedresource.SharedResources;
+import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
-import io.vertx.ext.web.handler.sockjs.PermittedOptions;
-import io.vertx.rxjava.core.AbstractVerticle;
-import io.vertx.rxjava.core.RxHelper;
-import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
-import io.vertx.rxjava.ext.jdbc.JDBCClient;
-import io.vertx.rxjava.ext.web.Router;
-import io.vertx.rxjava.ext.web.client.WebClient;
-import io.vertx.rxjava.ext.web.handler.BodyHandler;
-import io.vertx.rxjava.ext.web.handler.CookieHandler;
-import io.vertx.rxjava.ext.web.handler.FormLoginHandler;
-import io.vertx.rxjava.ext.web.handler.SessionHandler;
-import io.vertx.rxjava.ext.web.handler.StaticHandler;
-import io.vertx.rxjava.ext.web.handler.UserSessionHandler;
-import io.vertx.rxjava.ext.web.handler.sockjs.SockJSHandler;
-import io.vertx.rxjava.ext.web.sstore.LocalSessionStore;
-import io.vertx.rxjava.ext.web.templ.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.CompletableHelper;
+import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.RxHelper;
+import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
+import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.client.WebClient;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
+import io.vertx.reactivex.ext.web.handler.CookieHandler;
+import io.vertx.reactivex.ext.web.handler.FormLoginHandler;
+import io.vertx.reactivex.ext.web.handler.SessionHandler;
+import io.vertx.reactivex.ext.web.handler.StaticHandler;
+import io.vertx.reactivex.ext.web.handler.UserSessionHandler;
+import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
+import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
+import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
 import org.flywaydb.core.Flyway;
-import rx.Single;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,15 +71,21 @@ public class MusicStoreVerticle extends AbstractVerticle {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
     templateEngine = FreeMarkerTemplateEngine.create();
-    createCouchbaseClient().doOnSuccess(cluster -> couchbaseCluster = cluster)
+
+    Completable couchbase = createCouchbaseClient().doOnSuccess(cluster -> couchbaseCluster = cluster)
       .flatMap(v -> openBucket()).doOnSuccess(bucket -> albumCommentsBucket = bucket)
       .flatMap(v -> loadProperties("couchbase/queries.xml")).doOnSuccess(props -> couchbaseQueries = props)
-      .flatMap(v -> setupBucket())
-      .flatMap(v -> updateDB())
-      .flatMap(v -> loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
-      .doOnSuccess(v -> setupAuthProvider())
-      .flatMap(v -> setupWebServer())
-      .subscribe(startFuture::complete, startFuture::fail);
+      .toCompletable()
+      .andThen(Completable.defer(() -> setupBucket()));
+
+    Completable database = updateDB()
+      .andThen(loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
+      .toCompletable();
+
+    couchbase.mergeWith(database)
+      .andThen(Completable.fromAction(() -> setupAuthProvider()))
+      .andThen(Completable.defer(() -> setupWebServer()))
+      .subscribe(CompletableHelper.toObserver(startFuture));
   }
 
   private Single<SharedResource<CouchbaseAsyncCluster>> createCouchbaseClient() {
@@ -104,23 +113,26 @@ public class MusicStoreVerticle extends AbstractVerticle {
     });
   }
 
-  private Single<Void> setupBucket() {
+  private Completable setupBucket() {
     SimpleQuery findPrimaryIndex = Query.simple(couchbaseQueries.getProperty("findAlbumCommentsPrimaryIndex"));
     SimpleQuery createPrimaryIndex = Query.simple(couchbaseQueries.getProperty("createAlbumCommentsPrimaryIndex"));
-    return albumCommentsBucket.get().query(findPrimaryIndex)
+    rx.Completable setupCompletable = albumCommentsBucket.get().query(findPrimaryIndex)
       .switchIfEmpty(albumCommentsBucket.get().query(createPrimaryIndex))
-      .toSingle()
-      .observeOn(RxHelper.scheduler(vertx))
-      .map(v -> (Void) null);
+      .toCompletable();
+    return RxJavaInterop.toV2Completable(setupCompletable)
+      .observeOn(RxHelper.scheduler(vertx.getOrCreateContext()));
   }
 
-  private Single<Void> updateDB() {
-    return vertx.rxExecuteBlocking(future -> {
-      Flyway flyway = new Flyway();
-      flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
-      flyway.migrate();
-      future.complete();
-    });
+  private Completable updateDB() {
+    return vertx.sharedData().rxGetLock("flyway")
+      .flatMap(lock -> {
+        return vertx.rxExecuteBlocking(future -> {
+          Flyway flyway = new Flyway();
+          flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
+          flyway.migrate();
+          future.complete(/* RxJava2 does not want null */ Flyway.class);
+        }).doFinally(() -> lock.release());
+      }).toCompletable();
   }
 
   private Single<Properties> loadProperties(String name) {
@@ -142,7 +154,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
       .setPermissionsQuery(dbQueries.getProperty("findPermissionsByUser"));
   }
 
-  private Single<Void> setupWebServer() {
+  private Completable setupWebServer() {
     Router router = Router.router(vertx);
 
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
@@ -186,19 +198,19 @@ public class MusicStoreVerticle extends AbstractVerticle {
     return vertx.createHttpServer()
       .requestHandler(router::accept)
       .rxListen(8080)
-      .map(server -> null);
+      .toCompletable();
   }
 
   @Override
   public void stop(Future<Void> stopFuture) throws Exception {
-    vertx.<Void>rxExecuteBlocking(fut -> {
+    vertx.rxExecuteBlocking(fut -> {
       if (couchbaseCluster != null) {
         couchbaseCluster.release();
       }
-      fut.complete();
-    }).onErrorReturn(throwable -> {
-      throwable.printStackTrace();
-      return null;
-    }).subscribe(stopFuture::complete, stopFuture::fail);
+      fut.complete(/* RxJava2 does not want null */ CouchbaseAsyncCluster.class);
+    }).toCompletable()
+      .doOnError(Throwable::printStackTrace)
+      .onErrorComplete()
+      .subscribe(CompletableHelper.toObserver(stopFuture));
   }
 }

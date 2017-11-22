@@ -45,9 +45,7 @@ function loadComments() {
 
 function setupCommentListener() {
   var eb = new EventBus(window.location.protocol + "//" + window.location.host + "/eventbus");
-  eb.onclose = function (e) {
-    setTimeout(setupCommentListener, 1000);
-  };
+  eb.enableReconnect(true);
   eb.onopen = function () {
     eb.registerHandler("album." + $("#album-id").val() + ".comments.new", function (error, message) {
       var body = message.body;

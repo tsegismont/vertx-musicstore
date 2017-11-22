@@ -16,19 +16,20 @@
 
 package io.vertx.demo.musicstore;
 
+import io.reactivex.Maybe;
+import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.rxjava.core.buffer.Buffer;
-import io.vertx.rxjava.core.shareddata.LocalMap;
-import io.vertx.rxjava.ext.jdbc.JDBCClient;
-import io.vertx.rxjava.ext.sql.SQLConnection;
-import io.vertx.rxjava.ext.sql.SQLRowStream;
-import io.vertx.rxjava.ext.web.RoutingContext;
-import io.vertx.rxjava.ext.web.client.HttpResponse;
-import io.vertx.rxjava.ext.web.client.WebClient;
-import io.vertx.rxjava.ext.web.codec.BodyCodec;
-import rx.Single;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.core.shareddata.LocalMap;
+import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.sql.SQLConnection;
+import io.vertx.reactivex.ext.sql.SQLRowStream;
+import io.vertx.reactivex.ext.web.RoutingContext;
+import io.vertx.reactivex.ext.web.client.HttpResponse;
+import io.vertx.reactivex.ext.web.client.WebClient;
+import io.vertx.reactivex.ext.web.codec.BodyCodec;
 
 import java.util.Properties;
 
@@ -65,34 +66,33 @@ public class CoverHandler implements Handler<RoutingContext> {
 
     download(albumId)
       .doOnSuccess(buffer -> covers.put(albumId, buffer.getDelegate()))
-      .subscribe(rc.response()::end, rc::fail);
+      .subscribe(rc.response()::end, rc::fail, () -> rc.fail(404));
   }
 
-  private Single<Buffer> download(Long albumId) {
+  private Maybe<Buffer> download(Long albumId) {
     return dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      return findAlbum(sqlConnection, albumId)
-        .doAfterTerminate(sqlConnection::close)
-        .flatMap(album -> {
-          String mbAlbumId = album.getString("mbAlbumId");
-          if (mbAlbumId == null) {
-            return Single.error(new RuntimeException("Music Brainz Album Id not found"));
-          }
-          return webClient
-            .getAbs("http://coverartarchive.org")
-            .uri("/release/" + mbAlbumId + "/front")
-            .as(BodyCodec.buffer())
-            .rxSend();
-        }).map(HttpResponse::body);
+      return findAlbum(sqlConnection, albumId).doAfterTerminate(sqlConnection::close);
+    }).flatMapMaybe(album -> {
+      String mbAlbumId = album.getString("mbAlbumId");
+      return mbAlbumId == null ? Maybe.empty() : Maybe.just(mbAlbumId);
+    }).flatMap(mbAlbumId -> {
+      return webClient
+        .getAbs("http://coverartarchive.org")
+        .uri("/release/" + mbAlbumId + "/front")
+        .as(BodyCodec.buffer())
+        .rxSend()
+        .map(HttpResponse::body)
+        .toMaybe();
     });
   }
 
   private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
     return sqlConnection.rxQueryStreamWithParams(findAlbumById, new JsonArray().add(albumId))
-      .flatMapObservable(SQLRowStream::toObservable)
-      .toSingle()
+      .flatMapPublisher(SQLRowStream::toFlowable)
       .map(row -> new JsonObject()
         .put("id", albumId)
         .put("title", row.getString(0))
-        .put("mbAlbumId", row.getString(1)));
+        .put("mbAlbumId", row.getString(1)))
+      .singleOrError();
   }
 }

@@ -18,11 +18,11 @@ package io.vertx.demo.musicstore;
 
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.rxjava.core.MultiMap;
-import io.vertx.rxjava.ext.auth.jdbc.JDBCAuth;
-import io.vertx.rxjava.ext.jdbc.JDBCClient;
-import io.vertx.rxjava.ext.web.RoutingContext;
-import io.vertx.rxjava.ext.web.Session;
+import io.vertx.reactivex.core.MultiMap;
+import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
+import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.web.RoutingContext;
+import io.vertx.reactivex.ext.web.Session;
 
 import java.net.URI;
 import java.net.URISyntaxException;
