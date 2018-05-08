@@ -140,7 +140,6 @@
         <configuration>
           <!--  directory where to copy the vertx-web-client js a.k.a vertx-eventbus.js files-->
           <webRoot>target/classes/webroot/js</webRoot>
-          <!-- Program Arguments -->
           <redeploy>true</redeploy>
         </configuration>
       </plugin>
