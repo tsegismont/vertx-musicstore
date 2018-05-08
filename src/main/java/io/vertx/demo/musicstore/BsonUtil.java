@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Red Hat, Inc.
+ * Copyright 2018 Red Hat, Inc.
  *
  * Red Hat licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -16,26 +16,23 @@
 
 package io.vertx.demo.musicstore;
 
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.bson.Document;
+import org.bson.json.JsonMode;
+import org.bson.json.JsonWriterSettings;
 
 /**
  * @author Thomas Segismont
  */
-public class CouchbaseConfig {
+public class BsonUtil {
 
-  private final List<String> nodes;
+  private static final JsonWriterSettings WRITER_SETTINGS = JsonWriterSettings.builder().outputMode(JsonMode.RELAXED).build();
 
-  public CouchbaseConfig(JsonObject datasourceConfig) {
-    this.nodes = new ArrayList<>();
-    JsonArray jsonArray = datasourceConfig.getJsonArray("nodes", new JsonArray().add("localhost"));
-    jsonArray.forEach(o -> nodes.add((String) o));
+  public static JsonObject toJsonObject(Document document) {
+    return new JsonObject(document.toJson(WRITER_SETTINGS));
   }
 
-  public List<String> getNodes() {
-    return nodes;
+  private BsonUtil() {
+    // Utility
   }
 }

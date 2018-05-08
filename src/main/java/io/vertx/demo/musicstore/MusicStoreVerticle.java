@@ -16,23 +16,17 @@
 
 package io.vertx.demo.musicstore;
 
-import com.couchbase.client.java.AsyncBucket;
-import com.couchbase.client.java.CouchbaseAsyncCluster;
-import com.couchbase.client.java.env.DefaultCouchbaseEnvironment;
-import com.couchbase.client.java.query.Query;
-import com.couchbase.client.java.query.SimpleQuery;
-import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import com.mongodb.rx.client.MongoClient;
+import com.mongodb.rx.client.MongoClients;
+import com.mongodb.rx.client.MongoDatabase;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
-import io.vertx.demo.musicstore.sharedresource.SharedResource;
-import io.vertx.demo.musicstore.sharedresource.SharedResources;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.reactivex.CompletableHelper;
 import io.vertx.reactivex.core.AbstractVerticle;
-import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.web.Router;
@@ -60,10 +54,9 @@ public class MusicStoreVerticle extends AbstractVerticle {
   private DatasourceConfig datasourceConfig;
   private JDBCClient dbClient;
   private Properties dbQueries;
+  private MongoClient mongoClient;
+  private MongoDatabase mongoDatabase;
   private JDBCAuth authProvider;
-  private SharedResource<CouchbaseAsyncCluster> couchbaseCluster;
-  private SharedResource<AsyncBucket> albumCommentsBucket;
-  private Properties couchbaseQueries;
   private FreeMarkerTemplateEngine templateEngine;
 
   @Override
@@ -72,55 +65,18 @@ public class MusicStoreVerticle extends AbstractVerticle {
     dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
     templateEngine = FreeMarkerTemplateEngine.create();
 
-    Completable couchbase = createCouchbaseClient().doOnSuccess(cluster -> couchbaseCluster = cluster)
-      .flatMap(v -> openBucket()).doOnSuccess(bucket -> albumCommentsBucket = bucket)
-      .flatMap(v -> loadProperties("couchbase/queries.xml")).doOnSuccess(props -> couchbaseQueries = props)
-      .ignoreElement()
-      .andThen(Completable.defer(() -> setupBucket()));
+    String connectionString = config().getJsonObject("mongo", new JsonObject()).getString("url", "mongodb://localhost");
+    mongoClient = MongoClients.create(connectionString);
+    mongoDatabase = mongoClient.getDatabase("music");
 
-    Completable database = updateDB()
+    Completable databaseSetup = updateDB()
       .andThen(loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
       .ignoreElement();
 
-    couchbase.mergeWith(database)
+    databaseSetup
       .andThen(Completable.fromAction(() -> setupAuthProvider()))
       .andThen(Completable.defer(() -> setupWebServer()))
       .subscribe(CompletableHelper.toObserver(startFuture));
-  }
-
-  private Single<SharedResource<CouchbaseAsyncCluster>> createCouchbaseClient() {
-    CouchbaseConfig couchbaseConfig = new CouchbaseConfig(config().getJsonObject("couchbase", new JsonObject()));
-    return vertx.rxExecuteBlocking(fut -> {
-      SharedResources sharedResources = SharedResources.INSTANCE;
-      SharedResource<CouchbaseAsyncCluster> couchbaseCluster = sharedResources.getOrCreate("couchbaseCluster", () -> {
-        return CouchbaseAsyncCluster.create(DefaultCouchbaseEnvironment.builder()
-          .queryEnabled(true)
-          .build(), couchbaseConfig.getNodes());
-      }, CouchbaseAsyncCluster::disconnect);
-      fut.complete(couchbaseCluster);
-    });
-  }
-
-  private Single<SharedResource<AsyncBucket>> openBucket() {
-    return vertx.rxExecuteBlocking(fut -> {
-      SharedResources sharedResources = SharedResources.INSTANCE;
-      SharedResource<AsyncBucket> asyncBucket = sharedResources.getOrCreate("commentsBucket", () -> {
-        return couchbaseCluster.get().openBucket("album-comments").toSingle().toBlocking().value();
-      }, bucket -> {
-        bucket.close().toSingle().toBlocking().value();
-      });
-      fut.complete(asyncBucket);
-    });
-  }
-
-  private Completable setupBucket() {
-    SimpleQuery findPrimaryIndex = Query.simple(couchbaseQueries.getProperty("findAlbumCommentsPrimaryIndex"));
-    SimpleQuery createPrimaryIndex = Query.simple(couchbaseQueries.getProperty("createAlbumCommentsPrimaryIndex"));
-    rx.Completable setupCompletable = albumCommentsBucket.get().query(findPrimaryIndex)
-      .switchIfEmpty(albumCommentsBucket.get().query(createPrimaryIndex))
-      .toCompletable();
-    return RxJavaInterop.toV2Completable(setupCompletable)
-      .observeOn(RxHelper.scheduler(vertx.getOrCreateContext()));
   }
 
   private Completable updateDB() {
@@ -178,11 +134,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/covers/:albumId").handler(new CoverHandler(dbClient, dbQueries, WebClient.create(vertx)));
 
     router.get("/ajax/albums/:albumId/comments")
-      .handler(new AjaxAlbumCommentsHandler(albumCommentsBucket.get(), couchbaseQueries, templateEngine));
+      .handler(new AjaxAlbumCommentsHandler(mongoDatabase, templateEngine));
 
     router.post("/api/albums/:albumId/comments")
       .consumes("text/plain")
-      .handler(new AddAlbumCommentHandler(albumCommentsBucket.get()));
+      .handler(new AddAlbumCommentHandler(mongoDatabase));
 
     router.get("/login").handler(new ReturnUrlHandler());
     router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login")
@@ -204,13 +160,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
   @Override
   public void stop(Future<Void> stopFuture) throws Exception {
     vertx.rxExecuteBlocking(fut -> {
-      if (couchbaseCluster != null) {
-        couchbaseCluster.release();
+      if (mongoClient != null) {
+        mongoClient.close();
       }
-      fut.complete(/* RxJava2 does not want null */ CouchbaseAsyncCluster.class);
+      fut.complete(new Object());
     }).ignoreElement()
-      .doOnError(Throwable::printStackTrace)
-      .onErrorComplete()
       .subscribe(CompletableHelper.toObserver(stopFuture));
   }
 }

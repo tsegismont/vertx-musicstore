@@ -16,34 +16,31 @@
 
 package io.vertx.demo.musicstore;
 
-import com.couchbase.client.java.AsyncBucket;
-import com.couchbase.client.java.query.AsyncQueryResult;
-import com.couchbase.client.java.query.AsyncQueryRow;
-import com.couchbase.client.java.query.ParametrizedQuery;
-import com.couchbase.client.java.query.Query;
+import com.mongodb.rx.client.MongoDatabase;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.RxHelper;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
+import org.bson.Document;
 import rx.Observable;
 
-import java.util.Properties;
+import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Sorts.*;
 
 /**
  * @author Thomas Segismont
  */
 public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
 
-  private final AsyncBucket albumCommentsBucket;
-  private final String findRecentCommentsByAlbum;
+  private final MongoDatabase mongoDatabase;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public AjaxAlbumCommentsHandler(AsyncBucket albumCommentsBucket, Properties couchbaseQueries, FreeMarkerTemplateEngine templateEngine) {
-    this.albumCommentsBucket = albumCommentsBucket;
-    this.findRecentCommentsByAlbum = couchbaseQueries.getProperty("findRecentCommentsByAlbum");
+  public AjaxAlbumCommentsHandler(MongoDatabase mongoDatabase, FreeMarkerTemplateEngine templateEngine) {
+    this.mongoDatabase = mongoDatabase;
     this.templateEngine = templateEngine;
   }
 
@@ -55,14 +52,17 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
       return;
     }
 
-    com.couchbase.client.java.document.json.JsonArray params = com.couchbase.client.java.document.json.JsonArray.from(albumId);
-    ParametrizedQuery parametrizedQuery = Query.parametrized(findRecentCommentsByAlbum, params);
-    Observable<AsyncQueryRow> rowsObservable = albumCommentsBucket.query(parametrizedQuery)
-      .flatMap(AsyncQueryResult::rows);
-    RxJavaInterop.toV2Flowable(rowsObservable)
-      .observeOn(RxHelper.scheduler(routingContext.vertx().getOrCreateContext()))
+    Observable<Document> documentsObservable = mongoDatabase.getCollection("comments")
+      .find(eq("albumId", albumId)).sort(descending("timestamp"))
       .limit(5)
-      .collect(JsonArray::new, (jsonArray, row) -> jsonArray.add(new JsonObject(row.value().toMap())))
+      .toObservable();
+
+    Vertx vertx = routingContext.vertx();
+    Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
+
+    RxJavaInterop.toV2Flowable(documentsObservable)
+      .observeOn(scheduler)
+      .collect(JsonArray::new, (jsonArray, document) -> jsonArray.add(BsonUtil.toJsonObject(document)))
       .flatMap(data -> {
         routingContext.put("comments", data);
         return templateEngine.rxRender(routingContext, "templates/partials/album_comments");

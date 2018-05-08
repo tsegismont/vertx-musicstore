@@ -95,9 +95,9 @@
       <artifactId>vertx-auth-jdbc</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.couchbase.client</groupId>
-      <artifactId>java-client</artifactId>
-      <version>2.1.6</version>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver-rx</artifactId>
+      <version>1.5.0</version>
     </dependency>
     <dependency>
       <groupId>com.github.akarnokd</groupId>

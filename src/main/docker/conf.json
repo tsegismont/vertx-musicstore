@@ -2,9 +2,7 @@
   "datasource": {
     "url": "jdbc:postgresql://postgres:5432/musicdb"
   },
-  "couchbase": {
-    "nodes": [
-      "couchbase"
-    ]
+  "mongo": {
+    "url": "mongodb://mongo"
   }
 }

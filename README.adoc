@@ -39,20 +39,11 @@ Otherwise start each component individually.
 docker run --rm --name musicstore-db -e POSTGRES_USER=music -e POSTGRES_PASSWORD=music -e POSTGRES_DB=musicdb -p 5432:5432 postgres
 ----
 
-=== The Couchbase server
-
-First start a development server:
+=== The MongoDB server
 
 [source,shell]
 ----
-docker run --rm --name musicstore-couchbase -p 8091-8093:8091-8093 -p 11210:11210 arungupta/couchbase
-----
-
-Then create the album comments bucket:
-
-[source,shell]
-----
-curl -X POST -u Administrator:password -d name=album-comments -d ramQuotaMB=200 -d authType=none -d proxyPort=11315 http://127.0.0.1:8091/pools/default/buckets
+docker run --rm --name musicstore-mongo -p 27017:27017 mongo
 ----
 
 === Development

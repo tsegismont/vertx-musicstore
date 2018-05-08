@@ -16,16 +16,17 @@
 
 package io.vertx.demo.musicstore;
 
-import com.couchbase.client.java.AsyncBucket;
-import com.couchbase.client.java.document.JsonDocument;
+import com.mongodb.client.model.InsertOneOptions;
+import com.mongodb.rx.client.MongoDatabase;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.RoutingContext;
-import rx.Observable;
+import org.bson.Document;
+import rx.Completable;
 
 import static java.net.HttpURLConnection.*;
 
@@ -34,10 +35,10 @@ import static java.net.HttpURLConnection.*;
  */
 public class AddAlbumCommentHandler implements Handler<RoutingContext> {
 
-  private final AsyncBucket albumCommentsBucket;
+  private final MongoDatabase mongoDatabase;
 
-  public AddAlbumCommentHandler(AsyncBucket albumCommentsBucket) {
-    this.albumCommentsBucket = albumCommentsBucket;
+  public AddAlbumCommentHandler(MongoDatabase mongoDatabase) {
+    this.mongoDatabase = mongoDatabase;
   }
 
   @Override
@@ -54,29 +55,31 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
       return;
     }
 
-    String comment = rc.getBodyAsString();
-    if (comment == null || comment.isEmpty()) {
+    String content = rc.getBodyAsString();
+    if (content == null || content.isEmpty()) {
       rc.response().setStatusCode(HTTP_BAD_REQUEST).end();
       return;
     }
 
     long timestamp = System.currentTimeMillis();
 
-    JsonObject content = new JsonObject()
-      .put("albumId", albumId)
-      .put("username", user.principal().getValue("username"))
-      .put("timestamp", timestamp)
-      .put("comment", comment);
+    Document comment = new Document("albumId", albumId)
+      .append("username", user.principal().getValue("username"))
+      .append("timestamp", timestamp)
+      .append("comment", content);
 
-    JsonDocument document = JsonDocument.create("comment::" + timestamp, com.couchbase.client.java.document.json.JsonObject.from(content.getMap()));
+    Completable insertCompletable = mongoDatabase.getCollection("comments")
+      .insertOne(comment, new InsertOneOptions())
+      .toCompletable();
+
     Vertx vertx = rc.vertx();
-    Observable<JsonDocument> documentObservable = albumCommentsBucket.upsert(document);
-    RxJavaInterop.toV2Single(documentObservable.toSingle())
-      .observeOn(RxHelper.scheduler(vertx.getOrCreateContext()))
-      .doOnSuccess(doc -> vertx.setTimer(1000, v -> {
+    Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
+
+    RxJavaInterop.toV2Completable(insertCompletable)
+      .observeOn(scheduler)
+      .doOnComplete(() -> {
         String address = "album." + albumId + ".comments.new";
-        vertx.eventBus().<JsonObject>publish(address, content);
-      }))
-      .subscribe(doc -> rc.response().end(), rc::fail);
+        vertx.eventBus().publish(address, BsonUtil.toJsonObject(comment));
+      }).subscribe(rc.response()::end, rc::fail);
   }
 }
