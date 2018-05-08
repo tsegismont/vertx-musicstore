@@ -75,12 +75,12 @@ public class MusicStoreVerticle extends AbstractVerticle {
     Completable couchbase = createCouchbaseClient().doOnSuccess(cluster -> couchbaseCluster = cluster)
       .flatMap(v -> openBucket()).doOnSuccess(bucket -> albumCommentsBucket = bucket)
       .flatMap(v -> loadProperties("couchbase/queries.xml")).doOnSuccess(props -> couchbaseQueries = props)
-      .toCompletable()
+      .ignoreElement()
       .andThen(Completable.defer(() -> setupBucket()));
 
     Completable database = updateDB()
       .andThen(loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
-      .toCompletable();
+      .ignoreElement();
 
     couchbase.mergeWith(database)
       .andThen(Completable.fromAction(() -> setupAuthProvider()))
@@ -132,7 +132,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
           flyway.migrate();
           future.complete(/* RxJava2 does not want null */ Flyway.class);
         }).doFinally(() -> lock.release());
-      }).toCompletable();
+      }).ignoreElement();
   }
 
   private Single<Properties> loadProperties(String name) {
@@ -198,7 +198,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     return vertx.createHttpServer()
       .requestHandler(router::accept)
       .rxListen(8080)
-      .toCompletable();
+      .ignoreElement();
   }
 
   @Override
@@ -208,7 +208,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
         couchbaseCluster.release();
       }
       fut.complete(/* RxJava2 does not want null */ CouchbaseAsyncCluster.class);
-    }).toCompletable()
+    }).ignoreElement()
       .doOnError(Throwable::printStackTrace)
       .onErrorComplete()
       .subscribe(CompletableHelper.toObserver(stopFuture));
