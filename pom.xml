@@ -28,7 +28,7 @@
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-stack.version>3.5.0</vertx-stack.version>
+    <vertx-stack.version>3.5.1</vertx-stack.version>
     <rxjava2.version>2.1.6</rxjava2.version>
     <rxjava.version>1.3.4</rxjava.version>
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
