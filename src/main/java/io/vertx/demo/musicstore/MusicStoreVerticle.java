@@ -70,7 +70,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     mongoDatabase = mongoClient.getDatabase("music");
 
     Completable databaseSetup = updateDB()
-      .andThen(loadProperties("db/queries.xml")).doOnSuccess(props -> dbQueries = props)
+      .andThen(loadDbQueries()).doOnSuccess(props -> dbQueries = props)
       .ignoreElement();
 
     databaseSetup
@@ -88,10 +88,10 @@ public class MusicStoreVerticle extends AbstractVerticle {
     }).ignoreElement();
   }
 
-  private Single<Properties> loadProperties(String name) {
+  private Single<Properties> loadDbQueries() {
     return vertx.rxExecuteBlocking(fut -> {
       Properties properties = new Properties();
-      try (InputStream is = getClass().getClassLoader().getResourceAsStream(name)) {
+      try (InputStream is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
         properties.loadFromXML(is);
         fut.complete(properties);
       } catch (IOException e) {
