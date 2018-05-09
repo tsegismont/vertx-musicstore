@@ -76,14 +76,17 @@ public class CoverHandler implements Handler<RoutingContext> {
       String mbAlbumId = album.getString("mbAlbumId");
       return mbAlbumId == null ? Maybe.empty() : Maybe.just(mbAlbumId);
     }).flatMap(mbAlbumId -> {
-      return webClient
-        .getAbs("http://coverartarchive.org")
-        .uri("/release/" + mbAlbumId + "/front")
-        .as(BodyCodec.buffer())
-        .rxSend()
-        .map(HttpResponse::body)
-        .toMaybe();
+      return sendGetRequest(mbAlbumId).toMaybe();
     });
+  }
+
+  private Single<Buffer> sendGetRequest(String mbAlbumId) {
+    return webClient
+      .getAbs("http://coverartarchive.org")
+      .uri("/release/" + mbAlbumId + "/front")
+      .as(BodyCodec.buffer())
+      .rxSend()
+      .map(HttpResponse::body);
   }
 
   private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
