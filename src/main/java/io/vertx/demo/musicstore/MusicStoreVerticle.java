@@ -80,15 +80,12 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private Completable updateDB() {
-    return vertx.sharedData().rxGetLock("flyway")
-      .flatMap(lock -> {
-        return vertx.rxExecuteBlocking(future -> {
-          Flyway flyway = new Flyway();
-          flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
-          flyway.migrate();
-          future.complete(/* RxJava2 does not want null */ Flyway.class);
-        }).doFinally(() -> lock.release());
-      }).ignoreElement();
+    return vertx.rxExecuteBlocking(future -> {
+      Flyway flyway = new Flyway();
+      flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
+      flyway.migrate();
+      future.complete(new Object());
+    }).ignoreElement();
   }
 
   private Single<Properties> loadProperties(String name) {
