@@ -58,12 +58,13 @@ public class AlbumHandler implements Handler<RoutingContext> {
       Single<JsonObject> as = findAlbum(sqlConnection, albumId);
       Single<JsonArray> ts = findTracks(sqlConnection, albumId);
 
-      return Single.zip(as, ts, (album, tracks) -> {
+      Single<Map<String, Object>> templateData = Single.zip(as, ts, (album, tracks) -> {
         Map<String, Object> data = new HashMap<>(2);
         data.put("album", album);
         data.put("tracks", tracks);
         return data;
-      }).doAfterTerminate(sqlConnection::close);
+      });
+      return templateData.doAfterTerminate(sqlConnection::close);
 
     }).flatMap(data -> {
       data.forEach(rc::put);

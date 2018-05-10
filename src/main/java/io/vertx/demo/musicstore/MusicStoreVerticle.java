@@ -148,10 +148,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
     router.route().handler(StaticHandler.create());
 
-    return vertx.createHttpServer()
+    Completable completable = vertx.createHttpServer()
       .requestHandler(router::accept)
       .rxListen(8080)
       .ignoreElement();
+    return completable;
   }
 
   @Override

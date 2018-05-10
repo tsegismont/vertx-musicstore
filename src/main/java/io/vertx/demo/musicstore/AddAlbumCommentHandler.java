@@ -21,6 +21,7 @@ import com.mongodb.rx.client.MongoDatabase;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.auth.User;
@@ -75,11 +76,13 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
     Vertx vertx = rc.vertx();
     Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
 
+    String address = "album." + albumId + ".comments.new";
+    JsonObject eventBusMessage = BsonUtil.toJsonObject(comment);
+
     RxJavaInterop.toV2Completable(insertCompletable)
       .observeOn(scheduler)
       .doOnComplete(() -> {
-        String address = "album." + albumId + ".comments.new";
-        vertx.eventBus().publish(address, BsonUtil.toJsonObject(comment));
+        vertx.eventBus().publish(address, eventBusMessage);
       }).subscribe(rc.response()::end, rc::fail);
   }
 }
