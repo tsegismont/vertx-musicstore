@@ -20,8 +20,8 @@
 </style>
 </#assign>
 <#assign scripts in p>
-<script src="/js/sockjs-client/sockjs.min.js"></script>
-<script src="/js/vertx-web-client.js"></script>
+<script src="/sockjs-client/sockjs.min.js"></script>
+<script src="/vertx-web-client.js"></script>
 <script src="/js/notify.min.js"></script>
 <script src="/js/album.js"></script>
 </#assign>
