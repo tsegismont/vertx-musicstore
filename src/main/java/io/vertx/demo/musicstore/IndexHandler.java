@@ -24,7 +24,7 @@ import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.sql.SQLConnection;
 import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
 import java.util.Properties;
 
@@ -49,7 +49,7 @@ public class IndexHandler implements Handler<RoutingContext> {
       return findGenres(sqlConnection).doAfterTerminate(sqlConnection::close);
     }).flatMap(genres -> {
       rc.put("genres", genres);
-      return templateEngine.rxRender(rc, "templates/index");
+      return templateEngine.rxRender(rc.data(), "templates/index");
     }).subscribe(rc.response()::end, rc::fail);
   }
 

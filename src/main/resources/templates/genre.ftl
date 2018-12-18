@@ -1,6 +1,6 @@
 <#import "macros/page.ftl" as p>
 
-<#assign title in p>${context.genre.name}</#assign>
+<#assign title in p>${genre.name}</#assign>
 <#assign links in p>
 <link href="/css/base.css" rel="stylesheet">
 </#assign>
@@ -9,7 +9,7 @@
 
 <div class="container">
   <div class="title">
-    <h1>${context.genre.name}</h1>
+    <h1>${genre.name}</h1>
   </div>
 </div>
 
@@ -18,7 +18,7 @@
     <h2>Albums</h2>
   </div>
   <div class="row">
-    <#list context.albums as album>
+    <#list albums as album>
       <div class="col-md-4">
         <h2>${album.title}</h2>
         <p>Donec id elit non mi porta gravida at eget metus.</p>
@@ -35,7 +35,7 @@
     <h2>Artists</h2>
   </div>
   <div class="row">
-    <#list context.artists as artist>
+    <#list artists as artist>
       <div class="col-md-4">
         <h2>${artist.name}</h2>
         <p>Donec id elit non mi porta gravida at eget metus.</p>

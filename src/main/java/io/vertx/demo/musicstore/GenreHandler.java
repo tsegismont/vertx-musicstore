@@ -24,7 +24,7 @@ import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.sql.SQLConnection;
 import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -71,7 +71,7 @@ public class GenreHandler implements Handler<RoutingContext> {
       }).doAfterTerminate(sqlConnection::close);
     }).flatMap(data -> {
       data.forEach(rc::put);
-      return templateEngine.rxRender(rc, "templates/genre");
+      return templateEngine.rxRender(rc.data(), "templates/genre");
     }).subscribe(rc.response()::end, rc::fail);
   }
 

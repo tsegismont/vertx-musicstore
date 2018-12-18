@@ -31,15 +31,10 @@ import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
-import io.vertx.reactivex.ext.web.handler.BodyHandler;
-import io.vertx.reactivex.ext.web.handler.CookieHandler;
-import io.vertx.reactivex.ext.web.handler.FormLoginHandler;
-import io.vertx.reactivex.ext.web.handler.SessionHandler;
-import io.vertx.reactivex.ext.web.handler.StaticHandler;
-import io.vertx.reactivex.ext.web.handler.UserSessionHandler;
+import io.vertx.reactivex.ext.web.handler.*;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
-import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import org.flywaydb.core.Flyway;
 
 import java.io.IOException;
@@ -63,7 +58,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   public void start(Future<Void> startFuture) throws Exception {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
-    templateEngine = FreeMarkerTemplateEngine.create();
+    templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
     String connectionString = config().getJsonObject("mongo", new JsonObject()).getString("url", "mongodb://localhost");
     mongoClient = MongoClients.create(connectionString);
@@ -89,7 +84,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private Single<Properties> loadDbQueries() {
-    return vertx.rxExecuteBlocking(fut -> {
+    return vertx.<Properties>rxExecuteBlocking(fut -> {
       Properties properties = new Properties();
       try (InputStream is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
         properties.loadFromXML(is);
@@ -97,7 +92,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
       } catch (IOException e) {
         fut.fail(e);
       }
-    });
+    }).toSingle();
   }
 
   private void setupAuthProvider() {
@@ -138,11 +133,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
       .handler(new AddAlbumCommentHandler(mongoDatabase));
 
     router.get("/login").handler(new ReturnUrlHandler());
-    router.get("/login").handler(rc -> templateEngine.rxRender(rc, "templates/login")
+    router.get("/login").handler(rc -> templateEngine.rxRender(rc.data(), "templates/login")
       .subscribe(rc.response()::end, rc::fail));
     router.post("/login").handler(FormLoginHandler.create(authProvider));
 
-    router.get("/add_user").handler(rc -> templateEngine.rxRender(rc, "templates/add_user")
+    router.get("/add_user").handler(rc -> templateEngine.rxRender(rc.data(), "templates/add_user")
       .subscribe(rc.response()::end, rc::fail));
     router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries, authProvider));
 

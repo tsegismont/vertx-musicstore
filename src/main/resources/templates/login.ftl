@@ -15,10 +15,10 @@
     <input name="username" type="text" id="inputUsername" class="form-control" placeholder="Username" required autofocus>
     <label for="inputPassword" class="sr-only">Password</label>
     <input name="password" type="password" id="inputPassword" class="form-control form-last-input" placeholder="Password" required>
-    <input type="hidden" name="return_url" value="${context.return_url!}">
+    <input type="hidden" name="return_url" value="${return_url!}">
     <div>
       Create a
-      <a href="/add_user<#if context.return_url??>?return_url=${context.return_url?url('ISO-8859-1')}</#if>">new user</a>.
+      <a href="/add_user<#if return_url??>?return_url=${return_url?url('ISO-8859-1')}</#if>">new user</a>.
     </div>
     <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
   </form>

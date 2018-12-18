@@ -23,7 +23,7 @@
 
 <div class="container">
   <div class="row">
-    <#list context.genres as genre>
+    <#list genres as genre>
       <div class="col-md-4">
         <h2>${genre.name}</h2>
         <p>Donec id elit non mi porta gravida at eget metus.</p>

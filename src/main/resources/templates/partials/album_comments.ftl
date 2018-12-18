@@ -1,4 +1,4 @@
-<#list context.comments as comment>
+<#list comments as comment>
 <div>
   <hr>
   <p>

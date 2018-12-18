@@ -24,12 +24,12 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.templ.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import org.bson.Document;
 import rx.Observable;
 
-import static com.mongodb.client.model.Filters.*;
-import static com.mongodb.client.model.Sorts.*;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Sorts.descending;
 
 /**
  * @author Thomas Segismont
@@ -65,7 +65,7 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
       .collect(JsonArray::new, (jsonArray, document) -> jsonArray.add(BsonUtil.toJsonObject(document)))
       .flatMap(data -> {
         routingContext.put("comments", data);
-        return templateEngine.rxRender(routingContext, "templates/partials/album_comments");
+        return templateEngine.rxRender(routingContext.data(), "templates/partials/album_comments");
       }).subscribe(routingContext.response()::end, routingContext::fail);
   }
 }

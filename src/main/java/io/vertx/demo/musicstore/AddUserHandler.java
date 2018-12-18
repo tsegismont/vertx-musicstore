@@ -30,7 +30,8 @@ import java.security.SecureRandom;
 import java.util.Properties;
 import java.util.Random;
 
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 
 /**
  * @author Thomas Segismont
@@ -80,7 +81,7 @@ public class AddUserHandler implements Handler<RoutingContext> {
         .add(username).add(hashedPassword).add(password_salt);
 
       fut.complete(insertParams);
-    }).flatMap(insertParams -> {
+    }).toSingle().flatMap(insertParams -> {
       return dbClient.rxGetConnection().flatMap(sqlConnection -> {
         return sqlConnection.rxUpdateWithParams(insertUser, insertParams).doAfterTerminate(sqlConnection::close);
       });
