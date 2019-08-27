@@ -16,8 +16,9 @@
 
 package io.vertx.demo.musicstore;
 
-import com.mongodb.rx.client.MongoDatabase;
-import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import com.mongodb.reactivestreams.client.FindPublisher;
+import com.mongodb.reactivestreams.client.MongoDatabase;
+import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
@@ -26,7 +27,6 @@ import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import org.bson.Document;
-import rx.Observable;
 
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Sorts.descending;
@@ -52,15 +52,14 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
       return;
     }
 
-    Observable<Document> documentsObservable = mongoDatabase.getCollection("comments")
+    FindPublisher<Document> documents = mongoDatabase.getCollection("comments")
       .find(eq("albumId", albumId)).sort(descending("timestamp"))
-      .limit(5)
-      .toObservable();
+      .limit(5);
 
     Vertx vertx = routingContext.vertx();
     Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
 
-    RxJavaInterop.toV2Flowable(documentsObservable)
+    Flowable.fromPublisher(documents)
       .observeOn(scheduler)
       .collect(JsonArray::new, (jsonArray, document) -> jsonArray.add(BsonUtil.toJsonObject(document)))
       .flatMap(data -> {

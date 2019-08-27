@@ -17,8 +17,9 @@
 package io.vertx.demo.musicstore;
 
 import com.mongodb.client.model.InsertOneOptions;
-import com.mongodb.rx.client.MongoDatabase;
-import hu.akarnokd.rxjava.interop.RxJavaInterop;
+import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.mongodb.reactivestreams.client.Success;
+import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
@@ -27,9 +28,10 @@ import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import org.bson.Document;
-import rx.Completable;
+import org.reactivestreams.Publisher;
 
-import static java.net.HttpURLConnection.*;
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
+import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 /**
  * @author Thomas Segismont
@@ -69,9 +71,8 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
       .append("timestamp", timestamp)
       .append("comment", content);
 
-    Completable insertCompletable = mongoDatabase.getCollection("comments")
-      .insertOne(comment, new InsertOneOptions())
-      .toCompletable();
+    Publisher<Success> insertOne = mongoDatabase.getCollection("comments")
+      .insertOne(comment, new InsertOneOptions());
 
     Vertx vertx = rc.vertx();
     Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
@@ -79,7 +80,8 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
     String address = "album." + albumId + ".comments.new";
     JsonObject eventBusMessage = BsonUtil.toJsonObject(comment);
 
-    RxJavaInterop.toV2Completable(insertCompletable)
+    Flowable.fromPublisher(insertOne)
+      .ignoreElements()
       .observeOn(scheduler)
       .doOnComplete(() -> {
         vertx.eventBus().publish(address, eventBusMessage);

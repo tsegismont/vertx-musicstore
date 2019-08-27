@@ -16,22 +16,23 @@
 
 package io.vertx.demo.musicstore;
 
-import com.mongodb.rx.client.MongoClient;
-import com.mongodb.rx.client.MongoClients;
-import com.mongodb.rx.client.MongoDatabase;
+import com.mongodb.reactivestreams.client.MongoClient;
+import com.mongodb.reactivestreams.client.MongoClients;
+import com.mongodb.reactivestreams.client.MongoDatabase;
 import io.reactivex.Completable;
 import io.reactivex.Single;
-import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
-import io.vertx.reactivex.CompletableHelper;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
-import io.vertx.reactivex.ext.web.handler.*;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
+import io.vertx.reactivex.ext.web.handler.FormLoginHandler;
+import io.vertx.reactivex.ext.web.handler.SessionHandler;
+import io.vertx.reactivex.ext.web.handler.StaticHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
@@ -55,7 +56,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   private FreeMarkerTemplateEngine templateEngine;
 
   @Override
-  public void start(Future<Void> startFuture) throws Exception {
+  public Completable rxStart() {
     datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
     dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
     templateEngine = FreeMarkerTemplateEngine.create(vertx);
@@ -68,10 +69,9 @@ public class MusicStoreVerticle extends AbstractVerticle {
       .andThen(loadDbQueries()).doOnSuccess(props -> dbQueries = props)
       .ignoreElement();
 
-    databaseSetup
+    return databaseSetup
       .andThen(Completable.fromAction(() -> setupAuthProvider()))
-      .andThen(Completable.defer(() -> setupWebServer()))
-      .subscribe(CompletableHelper.toObserver(startFuture));
+      .andThen(Completable.defer(() -> setupWebServer()));
   }
 
   private Completable updateDB() {
@@ -79,7 +79,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
       Flyway flyway = new Flyway();
       flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
       flyway.migrate();
-      future.complete(new Object());
+      future.complete();
     }).ignoreElement();
   }
 
@@ -112,9 +112,9 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
     router.route().handler(BodyHandler.create());
 
-    router.route().handler(CookieHandler.create());
-    router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)));
-    router.route().handler(UserSessionHandler.create(authProvider));
+    SessionHandler sessionHandler = SessionHandler.create(LocalSessionStore.create(vertx))
+      .setAuthProvider(authProvider);
+    router.route().handler(sessionHandler);
 
     IndexHandler indexHandler = new IndexHandler(dbClient, dbQueries, templateEngine);
     router.get("/").handler(indexHandler);
@@ -143,21 +143,19 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
     router.route().handler(StaticHandler.create());
 
-    Completable completable = vertx.createHttpServer()
-      .requestHandler(router::accept)
+    return vertx.createHttpServer()
+      .requestHandler(router)
       .rxListen(8080)
       .ignoreElement();
-    return completable;
   }
 
   @Override
-  public void stop(Future<Void> stopFuture) throws Exception {
-    vertx.rxExecuteBlocking(fut -> {
+  public Completable rxStop() {
+    return vertx.rxExecuteBlocking(fut -> {
       if (mongoClient != null) {
         mongoClient.close();
       }
-      fut.complete(new Object());
-    }).ignoreElement()
-      .subscribe(CompletableHelper.toObserver(stopFuture));
+      fut.complete();
+    }).ignoreElement();
   }
 }
