@@ -31,6 +31,9 @@
     <vertx-stack.version>3.8.1</vertx-stack.version>
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
+    <!-- Eclipse JKube -->
+    <jkube.version>1.0.0-rc-1</jkube.version>
+    <jkube.enricher.jkube-service.type>NodePort</jkube.enricher.jkube-service.type>
   </properties>
 
   <dependencyManagement>
@@ -139,5 +142,20 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>kubernetes</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.eclipse.jkube</groupId>
+            <artifactId>kubernetes-maven-plugin</artifactId>
+            <version>${jkube.version}</version>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

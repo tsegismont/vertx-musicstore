@@ -18,7 +18,12 @@ image::album-page.png[Album]
 
 |===
 
-== Runnning
+== Running
+
+- <<#docker-using-docker-compose,Docker using Docker Compose>>
+- <<#kubernetes-using-eclipse-jkube,Kubernetes using Eclipse JKube>>
+
+=== Docker using Docker Compose
 
 If you only want to try the application without modifying it, run the build and start the components with `docker-compose`.
 
@@ -67,4 +72,101 @@ Then it's easy to create a script for Flyway.
 [source,shell]
 ----
 docker exec musicstore-db pg_dump -a --inserts --exclude-table=schema_version -h 127.0.0.1 -U music musicdb > src/main/resources/db/migration/V2__InsertData.sql
+----
+
+=== Kubernetes using Eclipse JKube
+You can deploy this application using https://github.com/eclipse/jkube[Eclipse JKube]'s Kubernetes Maven Plugin on top of Kubernetes easily. To do that, you would first need to add it inside plugins section of `pom.xml`. Here is an example of deploying application on https://kubernetes.io/docs/tasks/tools/install-minikube/[minikube]:
+
+==== Setting Database
+Since this application depends on PostgreSQL and MongoDB databases running, we would first deploy these databases onto Kubernetes by applying their YAML manifests which are present inside `kubernetes/` folder:
+
+[source]
+----
+~/work/repos/vertx-musicstore : $ kubectl create -f kubernetes/postgres.yml
+configmap/postgres-config created
+persistentvolume/postgres-pv-volume created
+persistentvolumeclaim/postgres-pv-claim created
+deployment.apps/postgres created
+service/postgres created
+~/work/repos/vertx-musicstore : $ kubectl create -f kubernetes/mongodb.yml
+deployment.apps/mongodb created
+service/mongo created
+----
+Once these are applied you can check whether you are able to connect like this:
+
+[source]
+----
+~/work/repos/vertx-musicstore : $ psql -h `minikube ip` \
+>  -p `kubectl get svc postgres -o jsonpath="{.spec.ports[0].nodePort}"` -U postgresadmin postgresdb
+Password for user postgresadmin:
+psql (12.3, server 10.4 (Debian 10.4-2.pgdg90+1))
+Type "help" for help.
+
+postgresdb=#
+----
+You can check for MongoDB in the same way.
+
+Once our databases are running we need to modify code in order to connect them to databases running inside Kubernetes Cluster.
+
+For PostgreSQL config, we would edit `DatasourceConfig` like this:
+
+[source]
+----
+public DatasourceConfig(JsonObject datasourceConfig) {
+  url = datasourceConfig.getString("url", "jdbc:postgresql://192.168.39.145:31892/musicdb");
+  user = datasourceConfig.getString("user", "postgresadmin");
+  password = datasourceConfig.getString("password", "admin123");
+}
+----
+
+For MongoDB config, we would edit `MusicStoreVerticle` like this:
+
+[source]
+----
+String connectionString = config()
+  .getJsonObject("mongo", new JsonObject())
+  .getString("url", "mongodb://192.168.39.145:31609");
+----
+
+==== Deploying onto Kubernetes using Eclipse JKube
+
+We're using https://kubernetes.io/docs/tasks/tools/install-minikube/[minikube] for our demonstration here, we need to expose minikube's docker daemon. To do this run `eval $(minikube docker-env)`.
+
+We need to delete the `Dockerfile` present inside root folder for Docker Compose since it might be picked up by Eclipse JKube during `k8s:build`. Once deleted we can proceed deploying application:
+
+- Build Application:
+[source]
+----
+mvn clean install
+----
+- Run Eclipse JKube goals to deploy to Kubernetes:
+[source]
+----
+mvn k8s:build    \ # Generate Docker Image
+    k8s:resource \ # Generate Kubernetes manifests
+    k8s:apply    \ # Apply generated Kubernetes Manifests
+    -Pkubernetes \ # Kubernetes Profile
+----
+- Access your application running inside Kubernetes using `minikube service`:
+
+[source]
+----
+~/work/repos/vertx-musicstore : $ kubectl get pods
+NAME                         READY   STATUS    RESTARTS   AGE
+mongodb-855bf5d4db-c8sq4     1/1     Running   0          21m
+musicstore-79b7f45f6-zvv8q   1/1     Running   0          8s
+postgres-7ffd788bc9-g57xp    1/1     Running   0          16m
+~/work/repos/vertx-musicstore : $ kubectl get svc
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
+kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP           16d
+mongo        NodePort    10.104.48.6     <none>        27017:31609/TCP   21m
+musicstore   NodePort    10.109.54.16    <none>        8080:30123/TCP    12s
+postgres     NodePort    10.109.76.159   <none>        5432:31892/TCP    17m
+~/work/repos/vertx-musicstore : $ minikube service musicstore
+|-----------|------------|-------------|-----------------------------|
+| NAMESPACE |    NAME    | TARGET PORT |             URL             |
+|-----------|------------|-------------|-----------------------------|
+| default   | musicstore | http/8080   | http://192.168.39.145:30123 |
+|-----------|------------|-------------|-----------------------------|
+🎉  Opening service default/musicstore in default browser...
 ----
