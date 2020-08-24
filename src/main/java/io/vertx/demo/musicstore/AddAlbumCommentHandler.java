@@ -17,8 +17,8 @@
 package io.vertx.demo.musicstore;
 
 import com.mongodb.client.model.InsertOneOptions;
+import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.reactivestreams.client.Success;
 import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
@@ -71,7 +71,7 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
       .append("timestamp", timestamp)
       .append("comment", content);
 
-    Publisher<Success> insertOne = mongoDatabase.getCollection("comments")
+    Publisher<InsertOneResult> insertOne = mongoDatabase.getCollection("comments")
       .insertOne(comment, new InsertOneOptions());
 
     Vertx vertx = rc.vertx();

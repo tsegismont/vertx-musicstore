@@ -17,24 +17,37 @@
 package io.vertx.demo.musicstore;
 
 import io.vertx.core.json.JsonObject;
+import io.vertx.pgclient.PgConnectOptions;
 
 /**
  * @author Thomas Segismont
  */
 public class DatasourceConfig {
 
-  private final String url;
+  private final String host;
+  private final int port;
+  private final String database;
   private final String user;
   private final String password;
 
   public DatasourceConfig(JsonObject datasourceConfig) {
-    url = datasourceConfig.getString("url", "jdbc:postgresql://localhost:5432/musicdb");
+    host = datasourceConfig.getString("host", "localhost");
+    port = datasourceConfig.getInteger("port", 5432);
+    database = datasourceConfig.getString("database", "musicdb");
     user = datasourceConfig.getString("user", "music");
     password = datasourceConfig.getString("password", "music");
   }
 
-  public String getUrl() {
-    return url;
+  public String getHost() {
+    return host;
+  }
+
+  public int getPort() {
+    return port;
+  }
+
+  public String getDatabase() {
+    return database;
   }
 
   public String getUser() {
@@ -45,7 +58,27 @@ public class DatasourceConfig {
     return password;
   }
 
-  public JsonObject toJson() {
-    return new JsonObject().put("url", url).put("user", user).put("password", password);
+  public PgConnectOptions toPgConnectOptions() {
+    return new PgConnectOptions()
+      .setHost(host)
+      .setPort(port)
+      .setDatabase(database)
+      .setUser(user)
+      .setPassword(password);
+  }
+
+  public String jdbcUrl() {
+    return String.format("jdbc:postgresql://%s:%d/%s", host, port, database);
+  }
+
+  @Override
+  public String toString() {
+    return "DatasourceConfig{" +
+      "host='" + host + '\'' +
+      ", port=" + port +
+      ", database='" + database + '\'' +
+      ", user='" + user + '\'' +
+      ", password='" + password + '\'' +
+      '}';
   }
 }

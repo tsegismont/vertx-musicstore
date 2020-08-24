@@ -16,15 +16,15 @@
 
 package io.vertx.demo.musicstore;
 
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.ext.jdbc.JDBCClient;
-import io.vertx.reactivex.ext.sql.SQLConnection;
-import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.Tuple;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,12 +34,13 @@ import java.util.Properties;
  * @author Thomas Segismont
  */
 public class AlbumHandler implements Handler<RoutingContext> {
-  private final JDBCClient dbClient;
+
+  private final PgPool dbClient;
   private final String findAlbumById;
   private final String findTracksByAlbum;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public AlbumHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
+  public AlbumHandler(PgPool dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
     findAlbumById = sqlQueries.getProperty("findAlbumById");
     findTracksByAlbum = sqlQueries.getProperty("findTracksByAlbum");
@@ -54,34 +55,30 @@ public class AlbumHandler implements Handler<RoutingContext> {
       return;
     }
 
-    dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      Single<JsonObject> as = findAlbum(sqlConnection, albumId);
-      Single<JsonArray> ts = findTracks(sqlConnection, albumId);
+    Single<JsonObject> as = findAlbum(albumId);
+    Single<JsonArray> ts = findTracks(albumId);
 
-      Single<Map<String, Object>> templateData = Single.zip(as, ts, (album, tracks) -> {
-        Map<String, Object> data = new HashMap<>(2);
-        data.put("album", album);
-        data.put("tracks", tracks);
-        return data;
-      });
-      return templateData.doAfterTerminate(sqlConnection::close);
-
+    Single.zip(as, ts, (album, tracks) -> {
+      Map<String, Object> data = new HashMap<>(2);
+      data.put("album", album);
+      data.put("tracks", tracks);
+      return data;
     }).flatMap(data -> {
       data.forEach(rc::put);
       return templateEngine.rxRender(rc.data(), "templates/album");
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
-    return sqlConnection.rxQueryStreamWithParams(findAlbumById, new JsonArray().add(albumId))
-      .flatMapPublisher(SQLRowStream::toFlowable)
+  private Single<JsonObject> findAlbum(Long albumId) {
+    return dbClient.preparedQuery(findAlbumById).rxExecute(Tuple.of(albumId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject().put("id", albumId).put("title", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findTracks(SQLConnection sqlConnection, Long albumId) {
-    return sqlConnection.rxQueryStreamWithParams(findTracksByAlbum, new JsonArray().add(albumId))
-      .flatMapObservable(SQLRowStream::toObservable)
+  private Single<JsonArray> findTracks(Long albumId) {
+    return dbClient.preparedQuery(findTracksByAlbum).rxExecute(Tuple.of(albumId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> {
         return new JsonObject()
           .put("id", row.getLong(0))

@@ -22,21 +22,23 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.sqlclient.SqlAuthentication;
+import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
 import io.vertx.ext.bridge.PermittedOptions;
-import io.vertx.ext.web.handler.sockjs.BridgeOptions;
+import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.core.AbstractVerticle;
-import io.vertx.reactivex.ext.auth.jdbc.JDBCAuth;
-import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.auth.authentication.AuthenticationProvider;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
-import io.vertx.reactivex.ext.web.handler.BodyHandler;
-import io.vertx.reactivex.ext.web.handler.FormLoginHandler;
-import io.vertx.reactivex.ext.web.handler.SessionHandler;
-import io.vertx.reactivex.ext.web.handler.StaticHandler;
+import io.vertx.reactivex.ext.web.handler.*;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.sqlclient.PoolOptions;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.configuration.Configuration;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,17 +50,17 @@ import java.util.Properties;
 public class MusicStoreVerticle extends AbstractVerticle {
 
   private DatasourceConfig datasourceConfig;
-  private JDBCClient dbClient;
+  private PgPool dbClient;
   private Properties dbQueries;
   private MongoClient mongoClient;
   private MongoDatabase mongoDatabase;
-  private JDBCAuth authProvider;
+  private SqlAuthentication authProvider;
   private FreeMarkerTemplateEngine templateEngine;
 
   @Override
   public Completable rxStart() {
-    datasourceConfig = new DatasourceConfig(config().getJsonObject("datasource", new JsonObject()));
-    dbClient = JDBCClient.createShared(vertx, datasourceConfig.toJson(), "MusicStoreDS");
+    datasourceConfig = new DatasourceConfig(config().getJsonObject("database", new JsonObject()));
+    dbClient = PgPool.pool(vertx, datasourceConfig.toPgConnectOptions(), new PoolOptions());
     templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
     String connectionString = config().getJsonObject("mongo", new JsonObject()).getString("url", "mongodb://localhost");
@@ -76,8 +78,9 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
   private Completable updateDB() {
     return vertx.rxExecuteBlocking(future -> {
-      Flyway flyway = new Flyway();
-      flyway.setDataSource(datasourceConfig.getUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
+      Configuration config = new FluentConfiguration()
+        .dataSource(datasourceConfig.jdbcUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
+      Flyway flyway = new Flyway(config);
       flyway.migrate();
       future.complete();
     }).ignoreElement();
@@ -96,24 +99,22 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private void setupAuthProvider() {
-    authProvider = JDBCAuth.create(vertx, dbClient)
-      .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"))
-      .setRolesQuery(dbQueries.getProperty("findRolesByUser"))
-      .setPermissionsQuery(dbQueries.getProperty("findPermissionsByUser"));
+    SqlAuthenticationOptions options = new SqlAuthenticationOptions()
+      .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"));
+    authProvider = SqlAuthentication.create(dbClient.getDelegate(), options);
   }
 
   private Completable setupWebServer() {
     Router router = Router.router(vertx);
 
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
-    sockJSHandler.bridge(new BridgeOptions()
-      .addOutboundPermitted(new PermittedOptions().setAddressRegex("album\\.\\d+\\.comments\\.new")));
-    router.route("/eventbus/*").handler(sockJSHandler);
+    SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions()
+      .addOutboundPermitted(new PermittedOptions().setAddressRegex("album\\.\\d+\\.comments\\.new"));
+    router.mountSubRouter("/eventbus", sockJSHandler.bridge(bridgeOptions));
 
     router.route().handler(BodyHandler.create());
 
-    SessionHandler sessionHandler = SessionHandler.create(LocalSessionStore.create(vertx))
-      .setAuthProvider(authProvider);
+    SessionHandler sessionHandler = SessionHandler.create(LocalSessionStore.create(vertx));
     router.route().handler(sessionHandler);
 
     IndexHandler indexHandler = new IndexHandler(dbClient, dbQueries, templateEngine);
@@ -135,13 +136,15 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/login").handler(new ReturnUrlHandler());
     router.get("/login").handler(rc -> templateEngine.rxRender(rc.data(), "templates/login")
       .subscribe(rc.response()::end, rc::fail));
-    router.post("/login").handler(FormLoginHandler.create(authProvider));
+    router.post("/login").handler(FormLoginHandler.create(AuthenticationProvider.newInstance(authProvider)));
 
     router.get("/add_user").handler(rc -> templateEngine.rxRender(rc.data(), "templates/add_user")
       .subscribe(rc.response()::end, rc::fail));
     router.post("/add_user").handler(new AddUserHandler(dbClient, dbQueries, authProvider));
 
     router.route().handler(StaticHandler.create());
+
+    router.route().failureHandler(ErrorHandler.create(true));
 
     return vertx.createHttpServer()
       .requestHandler(router)

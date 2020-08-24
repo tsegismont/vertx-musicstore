@@ -17,19 +17,18 @@
 package io.vertx.demo.musicstore;
 
 import io.reactivex.Maybe;
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.shareddata.LocalMap;
-import io.vertx.reactivex.ext.jdbc.JDBCClient;
-import io.vertx.reactivex.ext.sql.SQLConnection;
-import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.client.HttpResponse;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import io.vertx.reactivex.ext.web.codec.BodyCodec;
+import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.Tuple;
 
 import java.util.Properties;
 
@@ -38,11 +37,11 @@ import java.util.Properties;
  */
 public class CoverHandler implements Handler<RoutingContext> {
 
-  private final JDBCClient dbClient;
+  private final PgPool dbClient;
   private final String findAlbumById;
   private final WebClient webClient;
 
-  public CoverHandler(JDBCClient dbClient, Properties sqlQueries, WebClient webClient) {
+  public CoverHandler(PgPool dbClient, Properties sqlQueries, WebClient webClient) {
     this.dbClient = dbClient;
     findAlbumById = sqlQueries.getProperty("findAlbumById");
     this.webClient = webClient;
@@ -70,9 +69,7 @@ public class CoverHandler implements Handler<RoutingContext> {
   }
 
   private Maybe<Buffer> download(Long albumId) {
-    return dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      return findAlbum(sqlConnection, albumId).doAfterTerminate(sqlConnection::close);
-    }).flatMapMaybe(album -> {
+    return findAlbum(albumId).flatMapMaybe(album -> {
       String mbAlbumId = album.getString("mbAlbumId");
       return mbAlbumId == null ? Maybe.empty() : Maybe.just(mbAlbumId);
     }).flatMap(mbAlbumId -> {
@@ -89,9 +86,9 @@ public class CoverHandler implements Handler<RoutingContext> {
       .map(HttpResponse::body);
   }
 
-  private Single<JsonObject> findAlbum(SQLConnection sqlConnection, Long albumId) {
-    return sqlConnection.rxQueryStreamWithParams(findAlbumById, new JsonArray().add(albumId))
-      .flatMapPublisher(SQLRowStream::toFlowable)
+  private Single<JsonObject> findAlbum(Long albumId) {
+    return dbClient.preparedQuery(findAlbumById).rxExecute(Tuple.of(albumId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject()
         .put("id", albumId)
         .put("title", row.getString(0))

@@ -16,15 +16,14 @@
 
 package io.vertx.demo.musicstore;
 
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.ext.jdbc.JDBCClient;
-import io.vertx.reactivex.ext.sql.SQLConnection;
-import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.pgclient.PgPool;
 
 import java.util.Properties;
 
@@ -33,11 +32,11 @@ import java.util.Properties;
  */
 public class IndexHandler implements Handler<RoutingContext> {
 
-  private final JDBCClient dbClient;
+  private final PgPool dbClient;
   private final String findAllGenres;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public IndexHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
+  public IndexHandler(PgPool dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
     findAllGenres = sqlQueries.getProperty("findAllGenres");
     this.templateEngine = templateEngine;
@@ -45,17 +44,15 @@ public class IndexHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      return findGenres(sqlConnection).doAfterTerminate(sqlConnection::close);
-    }).flatMap(genres -> {
+    findGenres().flatMap(genres -> {
       rc.put("genres", genres);
       return templateEngine.rxRender(rc.data(), "templates/index");
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonArray> findGenres(SQLConnection sqlConnection) {
-    return sqlConnection.rxQueryStream(findAllGenres)
-      .flatMapObservable(SQLRowStream::toObservable)
+  private Single<JsonArray> findGenres() {
+    return dbClient.query(findAllGenres).rxExecute()
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
       .collect(JsonArray::new, JsonArray::add);
   }

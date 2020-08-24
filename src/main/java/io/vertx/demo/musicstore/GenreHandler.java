@@ -16,15 +16,15 @@
 
 package io.vertx.demo.musicstore;
 
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.ext.jdbc.JDBCClient;
-import io.vertx.reactivex.ext.sql.SQLConnection;
-import io.vertx.reactivex.ext.sql.SQLRowStream;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
+import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.Tuple;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,13 +35,13 @@ import java.util.Properties;
  */
 public class GenreHandler implements Handler<RoutingContext> {
 
-  private final JDBCClient dbClient;
+  private final PgPool dbClient;
   private final String findGenreById;
   private final String findAlbumsByGenre;
   private final String findArtistsByGenre;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public GenreHandler(JDBCClient dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
+  public GenreHandler(PgPool dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
     findGenreById = sqlQueries.getProperty("findGenreById");
     findAlbumsByGenre = sqlQueries.getProperty("findAlbumsByGenre");
@@ -57,41 +57,39 @@ public class GenreHandler implements Handler<RoutingContext> {
       return;
     }
 
-    dbClient.rxGetConnection().flatMap(sqlConnection -> {
-      Single<JsonObject> gs = findGenre(sqlConnection, genreId);
-      Single<JsonArray> als = findAlbums(sqlConnection, genreId);
-      Single<JsonArray> ars = findArtists(sqlConnection, genreId);
+    Single<JsonObject> gs = findGenre(genreId);
+    Single<JsonArray> als = findAlbums(genreId);
+    Single<JsonArray> ars = findArtists(genreId);
 
-      return Single.zip(gs, als, ars, (genre, albums, artists) -> {
-        Map<String, Object> data = new HashMap<>();
-        data.put("genre", genre);
-        data.put("albums", albums);
-        data.put("artists", artists);
-        return data;
-      }).doAfterTerminate(sqlConnection::close);
+    Single.zip(gs, als, ars, (genre, albums, artists) -> {
+      Map<String, Object> data = new HashMap<>();
+      data.put("genre", genre);
+      data.put("albums", albums);
+      data.put("artists", artists);
+      return data;
     }).flatMap(data -> {
       data.forEach(rc::put);
       return templateEngine.rxRender(rc.data(), "templates/genre");
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findGenre(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryStreamWithParams(findGenreById, new JsonArray().add(genreId))
-      .flatMapPublisher(SQLRowStream::toFlowable)
+  private Single<JsonObject> findGenre(Long genreId) {
+    return dbClient.preparedQuery(findGenreById).rxExecute(Tuple.of(genreId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject().put("id", genreId).put("name", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findAlbums(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryStreamWithParams(findAlbumsByGenre, new JsonArray().add(genreId))
-      .flatMapObservable(SQLRowStream::toObservable)
+  private Single<JsonArray> findAlbums(Long genreId) {
+    return dbClient.preparedQuery(findAlbumsByGenre).rxExecute(Tuple.of(genreId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("title", row.getString(1)))
       .collect(JsonArray::new, JsonArray::add);
   }
 
-  private Single<JsonArray> findArtists(SQLConnection sqlConnection, Long genreId) {
-    return sqlConnection.rxQueryStreamWithParams(findArtistsByGenre, new JsonArray().add(genreId))
-      .flatMapObservable(SQLRowStream::toObservable)
+  private Single<JsonArray> findArtists(Long genreId) {
+    return dbClient.preparedQuery(findArtistsByGenre).rxExecute(Tuple.of(genreId))
+      .flatMapObservable(Observable::fromIterable)
       .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
       .collect(JsonArray::new, JsonArray::add);
   }

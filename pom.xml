@@ -28,7 +28,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-stack.version>3.8.1</vertx-stack.version>
+    <vertx-stack.version>4.0.0.Beta1</vertx-stack.version>
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
   </properties>
@@ -87,26 +87,26 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-jdbc-client</artifactId>
+      <artifactId>vertx-pg-client</artifactId>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-auth-jdbc</artifactId>
+      <artifactId>vertx-auth-sql-client</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-reactivestreams</artifactId>
-      <version>1.12.0</version>
+      <version>4.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-      <version>4.0.3</version>
+      <version>6.5.5</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.6</version>
+      <version>42.2.16</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
@@ -122,7 +122,7 @@
       <plugin>
         <groupId>io.reactiverse</groupId>
         <artifactId>vertx-maven-plugin</artifactId>
-        <version>1.0.20</version>
+        <version>1.0.22</version>
         <executions>
           <execution>
             <goals>
@@ -134,6 +134,7 @@
         <configuration>
           <!--  directory where to copy the vertx-web-client js a.k.a vertx-eventbus.js files-->
           <webRoot>target/classes/webroot</webRoot>
+          <unpackWebJar>true</unpackWebJar>
           <redeploy>true</redeploy>
         </configuration>
       </plugin>
