@@ -14,13 +14,14 @@
  * under the License.
  */
 
-package io.vertx.demo.musicstore;
+package io.vertx.demo.musicstore.handler;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;

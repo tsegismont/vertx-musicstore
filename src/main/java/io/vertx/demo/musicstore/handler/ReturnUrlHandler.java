@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package io.vertx.demo.musicstore;
+package io.vertx.demo.musicstore.handler;
 
 import io.vertx.core.Handler;
 import io.vertx.reactivex.ext.web.RoutingContext;

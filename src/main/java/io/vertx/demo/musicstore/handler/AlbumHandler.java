@@ -14,13 +14,14 @@
  * under the License.
  */
 
-package io.vertx.demo.musicstore;
+package io.vertx.demo.musicstore.handler;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
@@ -33,53 +34,61 @@ import java.util.Properties;
 /**
  * @author Thomas Segismont
  */
-public class ArtistHandler implements Handler<RoutingContext> {
+public class AlbumHandler implements Handler<RoutingContext> {
 
   private final PgPool dbClient;
-  private final String findArtistById;
-  private final String findAlbumsByArtist;
+  private final String findAlbumById;
+  private final String findTracksByAlbum;
   private final FreeMarkerTemplateEngine templateEngine;
 
-  public ArtistHandler(PgPool dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
+  public AlbumHandler(PgPool dbClient, Properties sqlQueries, FreeMarkerTemplateEngine templateEngine) {
     this.dbClient = dbClient;
-    findArtistById = sqlQueries.getProperty("findArtistById");
-    findAlbumsByArtist = sqlQueries.getProperty("findAlbumsByArtist");
+    findAlbumById = sqlQueries.getProperty("findAlbumById");
+    findTracksByAlbum = sqlQueries.getProperty("findTracksByAlbum");
     this.templateEngine = templateEngine;
   }
 
   @Override
   public void handle(RoutingContext rc) {
-    Long artistId = PathUtil.parseLongParam(rc.pathParam("artistId"));
-    if (artistId == null) {
+    Long albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
+    if (albumId == null) {
       rc.next();
       return;
     }
 
-    Single<JsonObject> ars = findArtist(artistId);
-    Single<JsonArray> als = findAlbums(artistId);
+    Single<JsonObject> as = findAlbum(albumId);
+    Single<JsonArray> ts = findTracks(albumId);
 
-    Single.zip(ars, als, (artist, albums) -> {
+    Single.zip(as, ts, (album, tracks) -> {
       Map<String, Object> data = new HashMap<>(2);
-      data.put("artist", artist);
-      data.put("albums", albums);
+      data.put("album", album);
+      data.put("tracks", tracks);
       return data;
     }).flatMap(data -> {
       data.forEach(rc::put);
-      return templateEngine.rxRender(rc.data(), "templates/artist");
+      return templateEngine.rxRender(rc.data(), "templates/album");
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findArtist(Long artistId) {
-    return dbClient.preparedQuery(findArtistById).rxExecute(Tuple.of(artistId))
+  private Single<JsonObject> findAlbum(Long albumId) {
+    return dbClient.preparedQuery(findAlbumById).rxExecute(Tuple.of(albumId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", artistId).put("name", row.getString(0)))
+      .map(row -> new JsonObject().put("id", albumId).put("title", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findAlbums(Long artistId) {
-    return dbClient.preparedQuery(findAlbumsByArtist).rxExecute(Tuple.of(artistId))
+  private Single<JsonArray> findTracks(Long albumId) {
+    return dbClient.preparedQuery(findTracksByAlbum).rxExecute(Tuple.of(albumId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("title", row.getString(1)))
-      .collect(JsonArray::new, JsonArray::add);
+      .map(row -> {
+        return new JsonObject()
+          .put("id", row.getLong(0))
+          .put("track_number", row.getInteger(1))
+          .put("title", row.getString(2))
+          .put("mb_track_id", row.getString(3))
+          .put("artist", new JsonObject()
+            .put("id", row.getLong(4))
+            .put("name", row.getString(5)));
+      }).collect(JsonArray::new, JsonArray::add);
   }
 }

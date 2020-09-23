@@ -22,6 +22,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
+import io.vertx.demo.musicstore.handler.*;
 import io.vertx.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
 import io.vertx.ext.bridge.PermittedOptions;

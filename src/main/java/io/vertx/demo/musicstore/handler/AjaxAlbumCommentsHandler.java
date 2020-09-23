@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package io.vertx.demo.musicstore;
+package io.vertx.demo.musicstore.handler;
 
 import com.mongodb.reactivestreams.client.FindPublisher;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -22,6 +22,8 @@ import io.reactivex.Flowable;
 import io.reactivex.Scheduler;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
+import io.vertx.demo.musicstore.BsonUtil;
+import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.RoutingContext;
