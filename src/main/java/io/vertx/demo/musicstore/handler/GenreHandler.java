@@ -23,9 +23,7 @@ import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.demo.musicstore.data.Album;
 import io.vertx.demo.musicstore.data.Artist;
 import io.vertx.demo.musicstore.data.Genre;
-import io.vertx.demo.musicstore.reactivex.data.AlbumRowMapper;
-import io.vertx.demo.musicstore.reactivex.data.ArtistRowMapper;
-import io.vertx.demo.musicstore.reactivex.data.GenreRowMapper;
+import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
@@ -78,7 +76,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<Genre> findGenre(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findGenreById)
-      .mapTo(GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE))
+      .mapTo(Mappers.GENRE_ROW_MAPPER)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .singleOrError();
@@ -86,7 +84,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<List<Album>> findAlbums(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findAlbumsByGenre)
-      .mapTo(AlbumRowMapper.newInstance(io.vertx.demo.musicstore.data.AlbumRowMapper.INSTANCE))
+      .mapTo(Mappers.ALBUM_ROW_MAPPER)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .toList();
@@ -94,7 +92,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<List<Artist>> findArtists(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findArtistsByGenre)
-      .mapTo(ArtistRowMapper.newInstance(io.vertx.demo.musicstore.data.ArtistRowMapper.INSTANCE))
+      .mapTo(Mappers.ARTIST_ROW_MAPPER)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .toList();

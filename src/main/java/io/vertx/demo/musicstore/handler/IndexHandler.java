@@ -20,7 +20,7 @@ import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.demo.musicstore.data.Genre;
-import io.vertx.demo.musicstore.reactivex.data.GenreRowMapper;
+import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
@@ -54,7 +54,7 @@ public class IndexHandler implements Handler<RoutingContext> {
   private Single<List<Genre>> findGenres() {
     return dbClient.query(findAllGenres).rxExecute()
       .flatMapObservable(Observable::fromIterable)
-      .map(GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE)::map)
+      .map(Mappers.GENRE_ROW_MAPPER::map)
       .toList();
   }
 }
