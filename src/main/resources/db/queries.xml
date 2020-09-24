@@ -76,9 +76,11 @@ ORDER BY t.track_number
   ]]>
   </entry>
   <entry key="findArtistById"><![CDATA[
-SELECT a.name
+SELECT
+  a.id,
+  a.name
 FROM artists a
-WHERE a.id = $1
+WHERE a.id = #{id}
   ]]>
   </entry>
   <entry key="findAlbumsByArtist"><![CDATA[
@@ -88,7 +90,7 @@ SELECT DISTINCT
 FROM tracks t, albums ab, artists ar
 WHERE t.album_id = ab.id
       AND t.artist_id = ar.id
-      AND t.artist_id = $1
+      AND t.artist_id = #{id}
 ORDER BY ab.title
   ]]>
   </entry>

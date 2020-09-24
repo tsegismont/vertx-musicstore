@@ -19,17 +19,16 @@ package io.vertx.demo.musicstore.handler;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.PathUtil;
+import io.vertx.demo.musicstore.data.Album;
+import io.vertx.demo.musicstore.data.Artist;
+import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Tuple;
+import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Thomas Segismont
@@ -56,8 +55,8 @@ public class ArtistHandler implements Handler<RoutingContext> {
       return;
     }
 
-    Single<JsonObject> ars = findArtist(artistId);
-    Single<JsonArray> als = findAlbums(artistId);
+    Single<Artist> ars = findArtist(artistId);
+    Single<List<Album>> als = findAlbums(artistId);
 
     Single.zip(ars, als, (artist, albums) -> {
       Map<String, Object> data = new HashMap<>(2);
@@ -70,17 +69,19 @@ public class ArtistHandler implements Handler<RoutingContext> {
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findArtist(Long artistId) {
-    return dbClient.preparedQuery(findArtistById).rxExecute(Tuple.of(artistId))
+  private Single<Artist> findArtist(Long artistId) {
+    return SqlTemplate.forQuery(dbClient, findArtistById)
+      .mapTo(Mappers.ARTIST_ROW_MAPPER)
+      .rxExecute(Collections.singletonMap("id", artistId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", artistId).put("name", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findAlbums(Long artistId) {
-    return dbClient.preparedQuery(findAlbumsByArtist).rxExecute(Tuple.of(artistId))
+  private Single<List<Album>> findAlbums(Long artistId) {
+    return SqlTemplate.forQuery(dbClient, findAlbumsByArtist)
+      .mapTo(Mappers.ALBUM_ROW_MAPPER)
+      .rxExecute(Collections.singletonMap("id", artistId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("title", row.getString(1)))
-      .collect(JsonArray::new, JsonArray::add);
+      .toList();
   }
 }
