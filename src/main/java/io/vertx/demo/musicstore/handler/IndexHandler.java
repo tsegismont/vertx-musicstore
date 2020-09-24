@@ -19,12 +19,13 @@ package io.vertx.demo.musicstore.handler;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
+import io.vertx.demo.musicstore.data.Genre;
+import io.vertx.demo.musicstore.reactivex.data.GenreRowMapper;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
 
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -50,10 +51,10 @@ public class IndexHandler implements Handler<RoutingContext> {
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonArray> findGenres() {
+  private Single<List<Genre>> findGenres() {
     return dbClient.query(findAllGenres).rxExecute()
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
-      .collect(JsonArray::new, JsonArray::add);
+      .map(GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE)::map)
+      .toList();
   }
 }

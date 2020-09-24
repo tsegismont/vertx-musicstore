@@ -28,7 +28,7 @@ ORDER BY g.name
   <entry key="findGenreById"><![CDATA[
 SELECT g.name
 FROM genres g
-WHERE g.id = $1
+WHERE g.id = #{id}
   ]]>
   </entry>
   <entry key="findAlbumsByGenre"><![CDATA[
@@ -38,7 +38,7 @@ SELECT DISTINCT
 FROM tracks t, genres g, albums a
 WHERE t.genre_id = g.id
       AND t.album_id = a.id
-      AND t.genre_id = $1
+      AND t.genre_id = #{id}
 ORDER BY a.title;
   ]]>
   </entry>
@@ -49,7 +49,7 @@ SELECT DISTINCT
 FROM tracks t, genres g, artists a
 WHERE t.genre_id = g.id
       AND t.artist_id = a.id
-      AND t.genre_id = $1
+      AND t.genre_id = #{id}
 ORDER BY a.name;
   ]]>
   </entry>

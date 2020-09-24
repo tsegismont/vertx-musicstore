@@ -28,7 +28,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-stack.version>4.0.0.Beta3</vertx-stack.version>
+    <vertx-stack.version>4.0.0-SNAPSHOT</vertx-stack.version>
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
   </properties>
@@ -88,6 +88,17 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-pg-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-codegen</artifactId>
+      <classifier>processor</classifier>
+      <version>4.0.0.Beta3</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-sql-client-templates</artifactId>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>

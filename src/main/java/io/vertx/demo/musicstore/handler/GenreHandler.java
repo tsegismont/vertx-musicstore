@@ -19,17 +19,19 @@ package io.vertx.demo.musicstore.handler;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.PathUtil;
+import io.vertx.demo.musicstore.data.Album;
+import io.vertx.demo.musicstore.data.Artist;
+import io.vertx.demo.musicstore.data.Genre;
+import io.vertx.demo.musicstore.reactivex.data.AlbumRowMapper;
+import io.vertx.demo.musicstore.reactivex.data.ArtistRowMapper;
+import io.vertx.demo.musicstore.reactivex.data.GenreRowMapper;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Tuple;
+import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Thomas Segismont
@@ -58,9 +60,9 @@ public class GenreHandler implements Handler<RoutingContext> {
       return;
     }
 
-    Single<JsonObject> gs = findGenre(genreId);
-    Single<JsonArray> als = findAlbums(genreId);
-    Single<JsonArray> ars = findArtists(genreId);
+    Single<Genre> gs = findGenre(genreId);
+    Single<List<Album>> als = findAlbums(genreId);
+    Single<List<Artist>> ars = findArtists(genreId);
 
     Single.zip(gs, als, ars, (genre, albums, artists) -> {
       Map<String, Object> data = new HashMap<>();
@@ -74,24 +76,27 @@ public class GenreHandler implements Handler<RoutingContext> {
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findGenre(Long genreId) {
-    return dbClient.preparedQuery(findGenreById).rxExecute(Tuple.of(genreId))
+  private Single<Genre> findGenre(Long genreId) {
+    return SqlTemplate.forQuery(dbClient, findGenreById)
+      .mapTo(GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE))
+      .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", genreId).put("name", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findAlbums(Long genreId) {
-    return dbClient.preparedQuery(findAlbumsByGenre).rxExecute(Tuple.of(genreId))
+  private Single<List<Album>> findAlbums(Long genreId) {
+    return SqlTemplate.forQuery(dbClient, findAlbumsByGenre)
+      .mapTo(AlbumRowMapper.newInstance(io.vertx.demo.musicstore.data.AlbumRowMapper.INSTANCE))
+      .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("title", row.getString(1)))
-      .collect(JsonArray::new, JsonArray::add);
+      .toList();
   }
 
-  private Single<JsonArray> findArtists(Long genreId) {
-    return dbClient.preparedQuery(findArtistsByGenre).rxExecute(Tuple.of(genreId))
+  private Single<List<Artist>> findArtists(Long genreId) {
+    return SqlTemplate.forQuery(dbClient, findArtistsByGenre)
+      .mapTo(ArtistRowMapper.newInstance(io.vertx.demo.musicstore.data.ArtistRowMapper.INSTANCE))
+      .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", row.getLong(0)).put("name", row.getString(1)))
-      .collect(JsonArray::new, JsonArray::add);
+      .toList();
   }
 }
