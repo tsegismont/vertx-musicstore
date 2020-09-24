@@ -54,7 +54,7 @@ public class IndexHandler implements Handler<RoutingContext> {
   private Single<List<Genre>> findGenres() {
     return dbClient.query(findAllGenres).rxExecute()
       .flatMapObservable(Observable::fromIterable)
-      .map(Mappers.GENRE_ROW_MAPPER::map)
+      .map(Mappers.GENRE::map)
       .toList();
   }
 }

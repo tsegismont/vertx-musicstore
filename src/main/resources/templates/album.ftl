@@ -52,8 +52,8 @@
           <tbody>
             <#list tracks as track>
             <tr>
-              <td>${track.track_number}</td>
-              <td><a href="/artists/${track.artist.id}">${track.artist.name}</a></td>
+              <td>${track.trackNumber}</td>
+              <td><a href="/artists/${track.artistId}">${track.artistName}</a></td>
               <td>${track.title}</td>
             </tr>
             </#list>

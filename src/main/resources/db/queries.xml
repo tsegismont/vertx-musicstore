@@ -55,10 +55,11 @@ ORDER BY a.name;
   </entry>
   <entry key="findAlbumById"><![CDATA[
 SELECT
+  a.id,
   a.title,
   a.mb_album_id::text
 FROM albums a
-WHERE a.id = $1
+WHERE a.id = #{id}
   ]]>
   </entry>
   <entry key="findTracksByAlbum"><![CDATA[
@@ -67,11 +68,11 @@ SELECT
   t.track_number,
   t.title,
   t.mb_track_id,
-  ar.id,
+  ar.id AS artist_id,
   ar.name AS artist_name
 FROM tracks t, artists ar
 WHERE t.artist_id = ar.id
-      AND t.album_id = $1
+      AND t.album_id = #{id}
 ORDER BY t.track_number
   ]]>
   </entry>

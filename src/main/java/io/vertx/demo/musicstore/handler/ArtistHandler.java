@@ -71,7 +71,7 @@ public class ArtistHandler implements Handler<RoutingContext> {
 
   private Single<Artist> findArtist(Long artistId) {
     return SqlTemplate.forQuery(dbClient, findArtistById)
-      .mapTo(Mappers.ARTIST_ROW_MAPPER)
+      .mapTo(Mappers.ARTIST)
       .rxExecute(Collections.singletonMap("id", artistId))
       .flatMapObservable(Observable::fromIterable)
       .singleOrError();
@@ -79,7 +79,7 @@ public class ArtistHandler implements Handler<RoutingContext> {
 
   private Single<List<Album>> findAlbums(Long artistId) {
     return SqlTemplate.forQuery(dbClient, findAlbumsByArtist)
-      .mapTo(Mappers.ALBUM_ROW_MAPPER)
+      .mapTo(Mappers.ALBUM)
       .rxExecute(Collections.singletonMap("id", artistId))
       .flatMapObservable(Observable::fromIterable)
       .toList();

@@ -24,19 +24,41 @@ import io.vertx.sqlclient.templates.annotations.RowMapped;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Album {
+public class Track {
 
   private Long id;
+  private Short trackNumber;
+  private Short trackTotal;
   private String title;
-  @Column(name = "mb_album_id")
-  private String musicBrainAlbumId;
+  @Column(name = "mb_track_id")
+  private String musicBrainTrackId;
+  private Long artistId;
+  private String artistName;
 
   public Long getId() {
     return id;
   }
 
-  public Album setId(Long id) {
+  public Track setId(Long id) {
     this.id = id;
+    return this;
+  }
+
+  public Short getTrackNumber() {
+    return trackNumber;
+  }
+
+  public Track setTrackNumber(Short trackNumber) {
+    this.trackNumber = trackNumber;
+    return this;
+  }
+
+  public Short getTrackTotal() {
+    return trackTotal;
+  }
+
+  public Track setTrackTotal(Short trackTotal) {
+    this.trackTotal = trackTotal;
     return this;
   }
 
@@ -44,33 +66,54 @@ public class Album {
     return title;
   }
 
-  public Album setTitle(String title) {
+  public Track setTitle(String title) {
     this.title = title;
     return this;
   }
 
-  public String getMusicBrainAlbumId() {
-    return musicBrainAlbumId;
+  public String getMusicBrainTrackId() {
+    return musicBrainTrackId;
   }
 
-  public Album setMusicBrainAlbumId(String musicBrainAlbumId) {
-    this.musicBrainAlbumId = musicBrainAlbumId;
+  public Track setMusicBrainTrackId(String musicBrainTrackId) {
+    this.musicBrainTrackId = musicBrainTrackId;
     return this;
   }
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    AlbumConverter.toJson(this, json);
+    TrackConverter.toJson(this, json);
     return json;
   }
 
+  public Long getArtistId() {
+    return artistId;
+  }
+
+  public Track setArtistId(Long artistId) {
+    this.artistId = artistId;
+    return this;
+  }
+
+  public String getArtistName() {
+    return artistName;
+  }
+
+  public Track setArtistName(String artistName) {
+    this.artistName = artistName;
+    return this;
+  }
 
   @Override
   public String toString() {
-    return "Album{" +
+    return "Track{" +
       "id=" + id +
+      ", trackNumber=" + trackNumber +
+      ", trackTotal=" + trackTotal +
       ", title='" + title + '\'' +
-      ", musicBrainAlbumId='" + musicBrainAlbumId + '\'' +
+      ", musicBrainTrackId='" + musicBrainTrackId + '\'' +
+      ", artistId=" + artistId +
+      ", artistName='" + artistName + '\'' +
       '}';
   }
 }

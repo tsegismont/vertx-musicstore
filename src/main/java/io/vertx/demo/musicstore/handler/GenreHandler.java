@@ -76,7 +76,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<Genre> findGenre(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findGenreById)
-      .mapTo(Mappers.GENRE_ROW_MAPPER)
+      .mapTo(Mappers.GENRE)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .singleOrError();
@@ -84,7 +84,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<List<Album>> findAlbums(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findAlbumsByGenre)
-      .mapTo(Mappers.ALBUM_ROW_MAPPER)
+      .mapTo(Mappers.ALBUM)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .toList();
@@ -92,7 +92,7 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   private Single<List<Artist>> findArtists(Long genreId) {
     return SqlTemplate.forQuery(dbClient, findArtistsByGenre)
-      .mapTo(Mappers.ARTIST_ROW_MAPPER)
+      .mapTo(Mappers.ARTIST)
       .rxExecute(Collections.singletonMap("id", genreId))
       .flatMapObservable(Observable::fromIterable)
       .toList();

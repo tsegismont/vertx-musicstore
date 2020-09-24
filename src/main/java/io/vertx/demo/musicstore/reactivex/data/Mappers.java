@@ -18,9 +18,10 @@ package io.vertx.demo.musicstore.reactivex.data;
 
 public class Mappers {
 
-  public static final GenreRowMapper GENRE_ROW_MAPPER = GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE);
-  public static final AlbumRowMapper ALBUM_ROW_MAPPER = AlbumRowMapper.newInstance(io.vertx.demo.musicstore.data.AlbumRowMapper.INSTANCE);
-  public static final ArtistRowMapper ARTIST_ROW_MAPPER = ArtistRowMapper.newInstance(io.vertx.demo.musicstore.data.ArtistRowMapper.INSTANCE);
+  public static final GenreRowMapper GENRE = GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE);
+  public static final AlbumRowMapper ALBUM = AlbumRowMapper.newInstance(io.vertx.demo.musicstore.data.AlbumRowMapper.INSTANCE);
+  public static final ArtistRowMapper ARTIST = ArtistRowMapper.newInstance(io.vertx.demo.musicstore.data.ArtistRowMapper.INSTANCE);
+  public static final TrackRowMapper TRACK = TrackRowMapper.newInstance(io.vertx.demo.musicstore.data.TrackRowMapper.INSTANCE);
 
   private Mappers() {
     // Constants class

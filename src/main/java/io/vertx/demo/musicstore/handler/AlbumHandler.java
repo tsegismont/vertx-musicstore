@@ -19,17 +19,16 @@ package io.vertx.demo.musicstore.handler;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.PathUtil;
+import io.vertx.demo.musicstore.data.Album;
+import io.vertx.demo.musicstore.data.Track;
+import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Tuple;
+import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * @author Thomas Segismont
@@ -56,8 +55,8 @@ public class AlbumHandler implements Handler<RoutingContext> {
       return;
     }
 
-    Single<JsonObject> as = findAlbum(albumId);
-    Single<JsonArray> ts = findTracks(albumId);
+    Single<Album> as = findAlbum(albumId);
+    Single<List<Track>> ts = findTracks(albumId);
 
     Single.zip(as, ts, (album, tracks) -> {
       Map<String, Object> data = new HashMap<>(2);
@@ -70,25 +69,19 @@ public class AlbumHandler implements Handler<RoutingContext> {
     }).subscribe(rc.response()::end, rc::fail);
   }
 
-  private Single<JsonObject> findAlbum(Long albumId) {
-    return dbClient.preparedQuery(findAlbumById).rxExecute(Tuple.of(albumId))
+  private Single<Album> findAlbum(Long albumId) {
+    return SqlTemplate.forQuery(dbClient, findAlbumById)
+      .mapTo(Mappers.ALBUM)
+      .rxExecute(Collections.singletonMap("id", albumId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject().put("id", albumId).put("title", row.getString(0)))
       .singleOrError();
   }
 
-  private Single<JsonArray> findTracks(Long albumId) {
-    return dbClient.preparedQuery(findTracksByAlbum).rxExecute(Tuple.of(albumId))
+  private Single<List<Track>> findTracks(Long albumId) {
+    return SqlTemplate.forQuery(dbClient, findTracksByAlbum)
+      .mapTo(Mappers.TRACK)
+      .rxExecute(Collections.singletonMap("id", albumId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> {
-        return new JsonObject()
-          .put("id", row.getLong(0))
-          .put("track_number", row.getInteger(1))
-          .put("title", row.getString(2))
-          .put("mb_track_id", row.getString(3))
-          .put("artist", new JsonObject()
-            .put("id", row.getLong(4))
-            .put("name", row.getString(5)));
-      }).collect(JsonArray::new, JsonArray::add);
+      .toList();
   }
 }

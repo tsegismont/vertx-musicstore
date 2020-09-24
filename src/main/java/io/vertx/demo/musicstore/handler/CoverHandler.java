@@ -20,8 +20,9 @@ import io.reactivex.Maybe;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.PathUtil;
+import io.vertx.demo.musicstore.data.Album;
+import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.shareddata.LocalMap;
 import io.vertx.reactivex.ext.web.RoutingContext;
@@ -29,8 +30,9 @@ import io.vertx.reactivex.ext.web.client.HttpResponse;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import io.vertx.reactivex.ext.web.codec.BodyCodec;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Tuple;
+import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 
+import java.util.Collections;
 import java.util.Properties;
 
 /**
@@ -71,8 +73,8 @@ public class CoverHandler implements Handler<RoutingContext> {
 
   private Maybe<Buffer> download(Long albumId) {
     return findAlbum(albumId).flatMapMaybe(album -> {
-      String mbAlbumId = album.getString("mbAlbumId");
-      return mbAlbumId == null ? Maybe.empty() : Maybe.just(mbAlbumId);
+      String musicBrainAlbumId = album.getMusicBrainAlbumId();
+      return musicBrainAlbumId == null ? Maybe.empty():Maybe.just(musicBrainAlbumId);
     }).flatMap(mbAlbumId -> {
       return sendGetRequest(mbAlbumId).toMaybe();
     });
@@ -87,13 +89,11 @@ public class CoverHandler implements Handler<RoutingContext> {
       .map(HttpResponse::body);
   }
 
-  private Single<JsonObject> findAlbum(Long albumId) {
-    return dbClient.preparedQuery(findAlbumById).rxExecute(Tuple.of(albumId))
+  private Single<Album> findAlbum(Long albumId) {
+    return SqlTemplate.forQuery(dbClient, findAlbumById)
+      .mapTo(Mappers.ALBUM)
+      .rxExecute(Collections.singletonMap("id", albumId))
       .flatMapObservable(Observable::fromIterable)
-      .map(row -> new JsonObject()
-        .put("id", albumId)
-        .put("title", row.getString(0))
-        .put("mbAlbumId", row.getString(1)))
       .singleOrError();
   }
 }
