@@ -28,7 +28,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-stack.version>4.0.0-SNAPSHOT</vertx-stack.version>
+    <vertx-stack.version>4.0.0.CR2</vertx-stack.version>
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
   </properties>
@@ -62,13 +62,10 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web-client</artifactId>
     </dependency>
-    <!-- to make vertx-maven-plugin automatically copy vertx-web-client.js(vertx-eventbus.js) -->
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-web</artifactId>
-      <version>${vertx-stack.version}</version>
-      <classifier>client</classifier>
-      <type>js</type>
+      <groupId>org.webjars.npm</groupId>
+      <artifactId>vertx3-eventbus-client</artifactId>
+      <version>3.9.4</version>
     </dependency>
     <dependency>
       <groupId>org.webjars</groupId>
@@ -93,7 +90,7 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-codegen</artifactId>
       <classifier>processor</classifier>
-      <version>4.0.0.Beta3</version>
+      <version>${vertx-stack.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

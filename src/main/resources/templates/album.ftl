@@ -21,7 +21,7 @@
 </#assign>
 <#assign scripts in p>
 <script src="/sockjs-client/sockjs.min.js"></script>
-<script src="/vertx-web-client.js"></script>
+<script src="/vertx3-eventbus-client/vertx-eventbus.js"></script>
 <script src="/js/notify.min.js"></script>
 <script src="/js/album.js"></script>
 </#assign>

@@ -145,7 +145,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
     router.route().handler(StaticHandler.create());
 
-    router.route().failureHandler(ErrorHandler.create(true));
+    router.route().failureHandler(ErrorHandler.create(vertx));
 
     return vertx.createHttpServer()
       .requestHandler(router)
