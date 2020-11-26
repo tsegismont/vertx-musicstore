@@ -23,12 +23,11 @@ import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.handler.*;
-import io.vertx.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.ext.auth.sqlclient.SqlAuthenticationOptions;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.core.AbstractVerticle;
-import io.vertx.reactivex.ext.auth.authentication.AuthenticationProvider;
+import io.vertx.reactivex.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import io.vertx.reactivex.ext.web.handler.*;
@@ -102,7 +101,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
   private void setupAuthProvider() {
     SqlAuthenticationOptions options = new SqlAuthenticationOptions()
       .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"));
-    authProvider = SqlAuthentication.create(dbClient.getDelegate(), options);
+    authProvider = SqlAuthentication.create(dbClient, options);
   }
 
   private Completable setupWebServer() {
@@ -137,7 +136,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     router.get("/login").handler(new ReturnUrlHandler());
     router.get("/login").handler(rc -> templateEngine.rxRender(rc.data(), "templates/login")
       .subscribe(rc.response()::end, rc::fail));
-    router.post("/login").handler(FormLoginHandler.create(AuthenticationProvider.newInstance(authProvider)));
+    router.post("/login").handler(FormLoginHandler.create(authProvider));
 
     router.get("/add_user").handler(rc -> templateEngine.rxRender(rc.data(), "templates/add_user")
       .subscribe(rc.response()::end, rc::fail));

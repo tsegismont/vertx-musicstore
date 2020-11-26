@@ -17,9 +17,9 @@
 package io.vertx.demo.musicstore.handler;
 
 import io.vertx.core.Handler;
-import io.vertx.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.reactivex.core.MultiMap;
 import io.vertx.reactivex.ext.auth.VertxContextPRNG;
+import io.vertx.reactivex.ext.auth.sqlclient.SqlAuthentication;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.Session;
 import io.vertx.reactivex.pgclient.PgPool;
