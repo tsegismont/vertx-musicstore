@@ -24,7 +24,9 @@ import io.vertx.demo.musicstore.reactivex.data.Mappers;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
 import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -52,9 +54,10 @@ public class IndexHandler implements Handler<RoutingContext> {
   }
 
   private Single<List<Genre>> findGenres() {
-    return dbClient.query(findAllGenres).rxExecute()
+    return SqlTemplate.forQuery(dbClient, findAllGenres)
+      .mapTo(Mappers.GENRE)
+      .rxExecute(Collections.emptyMap())
       .flatMapObservable(Observable::fromIterable)
-      .map(Mappers.GENRE::map)
       .toList();
   }
 }
