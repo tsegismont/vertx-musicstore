@@ -16,6 +16,11 @@
 
 package io.vertx.demo.musicstore.reactivex.data;
 
+import io.vertx.demo.musicstore.rxjava3.data.AlbumRowMapper;
+import io.vertx.demo.musicstore.rxjava3.data.ArtistRowMapper;
+import io.vertx.demo.musicstore.rxjava3.data.GenreRowMapper;
+import io.vertx.demo.musicstore.rxjava3.data.TrackRowMapper;
+
 public class Mappers {
 
   public static final GenreRowMapper GENRE = GenreRowMapper.newInstance(io.vertx.demo.musicstore.data.GenreRowMapper.INSTANCE);

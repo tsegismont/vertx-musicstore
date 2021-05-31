@@ -17,20 +17,14 @@
 package io.vertx.demo.musicstore.handler;
 
 import com.mongodb.client.model.InsertOneOptions;
-import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import io.reactivex.Flowable;
-import io.reactivex.Scheduler;
+import io.reactivex.rxjava3.core.Flowable;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import io.vertx.demo.musicstore.BsonUtil;
 import io.vertx.demo.musicstore.PathUtil;
-import io.vertx.reactivex.core.RxHelper;
-import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.ext.auth.User;
-import io.vertx.reactivex.ext.web.RoutingContext;
+import io.vertx.rxjava3.core.RxHelper;
+import io.vertx.rxjava3.ext.web.RoutingContext;
 import org.bson.Document;
-import org.reactivestreams.Publisher;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;

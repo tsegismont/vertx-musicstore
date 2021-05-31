@@ -16,18 +16,18 @@
 
 package io.vertx.demo.musicstore.handler;
 
-import io.reactivex.Observable;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.Handler;
 import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.demo.musicstore.data.Album;
 import io.vertx.demo.musicstore.data.Artist;
 import io.vertx.demo.musicstore.data.Genre;
 import io.vertx.demo.musicstore.reactivex.data.Mappers;
-import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
-import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
+import io.vertx.rxjava3.ext.web.RoutingContext;
+import io.vertx.rxjava3.ext.web.templ.freemarker.FreeMarkerTemplateEngine;
+import io.vertx.rxjava3.pgclient.PgPool;
+import io.vertx.rxjava3.sqlclient.templates.SqlTemplate;
 
 import java.util.*;
 

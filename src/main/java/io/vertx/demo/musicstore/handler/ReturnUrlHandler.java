@@ -17,8 +17,7 @@
 package io.vertx.demo.musicstore.handler;
 
 import io.vertx.core.Handler;
-import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.Session;
+import io.vertx.rxjava3.ext.web.RoutingContext;
 
 /**
  * @author Thomas Segismont

@@ -26,7 +26,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-stack.version>4.0.0.CR2</vertx-stack.version>
+    <vertx-stack.version>4.1.0.CR2</vertx-stack.version>
     <!-- Vert.x Main Verticle which will be used to start the application -->
     <vertx.verticle>io.vertx.demo.musicstore.MusicStoreVerticle</vertx.verticle>
   </properties>
@@ -46,7 +46,8 @@
   <dependencies>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-rx-java2</artifactId>
+      <artifactId>vertx-rx-java3</artifactId>
+      <version>${vertx-stack.version}</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -88,7 +89,6 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-codegen</artifactId>
       <classifier>processor</classifier>
-      <version>${vertx-stack.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -102,17 +102,17 @@
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-reactivestreams</artifactId>
-      <version>4.1.0</version>
+      <version>4.2.3</version>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
-      <version>6.5.5</version>
+      <version>7.9.1</version>
     </dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.2.16</version>
+      <version>42.2.20</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>

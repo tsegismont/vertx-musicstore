@@ -17,13 +17,11 @@
 package io.vertx.demo.musicstore.handler;
 
 import io.vertx.core.Handler;
-import io.vertx.reactivex.core.MultiMap;
-import io.vertx.reactivex.ext.auth.VertxContextPRNG;
-import io.vertx.reactivex.ext.auth.sqlclient.SqlAuthentication;
-import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.Session;
-import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Tuple;
+import io.vertx.rxjava3.ext.auth.VertxContextPRNG;
+import io.vertx.rxjava3.ext.auth.sqlclient.SqlAuthentication;
+import io.vertx.rxjava3.ext.web.RoutingContext;
+import io.vertx.rxjava3.pgclient.PgPool;
+import io.vertx.rxjava3.sqlclient.Tuple;
 
 import java.net.URI;
 import java.net.URISyntaxException;

@@ -16,21 +16,21 @@
 
 package io.vertx.demo.musicstore.handler;
 
-import io.reactivex.Maybe;
-import io.reactivex.Observable;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.Handler;
 import io.vertx.demo.musicstore.PathUtil;
 import io.vertx.demo.musicstore.data.Album;
 import io.vertx.demo.musicstore.reactivex.data.Mappers;
-import io.vertx.reactivex.core.buffer.Buffer;
-import io.vertx.reactivex.core.shareddata.LocalMap;
-import io.vertx.reactivex.ext.web.RoutingContext;
-import io.vertx.reactivex.ext.web.client.HttpResponse;
-import io.vertx.reactivex.ext.web.client.WebClient;
-import io.vertx.reactivex.ext.web.codec.BodyCodec;
-import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
+import io.vertx.rxjava3.core.buffer.Buffer;
+import io.vertx.rxjava3.core.shareddata.LocalMap;
+import io.vertx.rxjava3.ext.web.RoutingContext;
+import io.vertx.rxjava3.ext.web.client.HttpResponse;
+import io.vertx.rxjava3.ext.web.client.WebClient;
+import io.vertx.rxjava3.ext.web.codec.BodyCodec;
+import io.vertx.rxjava3.pgclient.PgPool;
+import io.vertx.rxjava3.sqlclient.templates.SqlTemplate;
 
 import java.util.Collections;
 import java.util.Properties;
