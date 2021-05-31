@@ -52,15 +52,15 @@ public class GenreHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    Long genreId = PathUtil.parseLongParam(rc.pathParam("genreId"));
+    var genreId = PathUtil.parseLongParam(rc.pathParam("genreId"));
     if (genreId == null) {
       rc.next();
       return;
     }
 
-    Single<Genre> gs = findGenre(genreId);
-    Single<List<Album>> als = findAlbums(genreId);
-    Single<List<Artist>> ars = findArtists(genreId);
+    var gs = findGenre(genreId);
+    var als = findAlbums(genreId);
+    var ars = findArtists(genreId);
 
     Single.zip(gs, als, ars, (genre, albums, artists) -> {
       Map<String, Object> data = new HashMap<>();

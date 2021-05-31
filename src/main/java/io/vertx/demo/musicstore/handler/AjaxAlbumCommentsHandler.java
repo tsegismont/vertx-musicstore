@@ -48,18 +48,18 @@ public class AjaxAlbumCommentsHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext routingContext) {
-    Long albumId = PathUtil.parseLongParam(routingContext.pathParam("albumId"));
+    var albumId = PathUtil.parseLongParam(routingContext.pathParam("albumId"));
     if (albumId == null) {
       routingContext.next();
       return;
     }
 
-    FindPublisher<Document> documents = mongoDatabase.getCollection("comments")
+    var documents = mongoDatabase.getCollection("comments")
       .find(eq("albumId", albumId)).sort(descending("timestamp"))
       .limit(5);
 
-    Vertx vertx = routingContext.vertx();
-    Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
+    var vertx = routingContext.vertx();
+    var scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
 
     Flowable.fromPublisher(documents)
       .observeOn(scheduler)

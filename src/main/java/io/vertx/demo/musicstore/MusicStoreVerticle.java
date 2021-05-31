@@ -63,11 +63,11 @@ public class MusicStoreVerticle extends AbstractVerticle {
     dbClient = PgPool.pool(vertx, datasourceConfig.toPgConnectOptions(), new PoolOptions());
     templateEngine = FreeMarkerTemplateEngine.create(vertx);
 
-    String connectionString = config().getJsonObject("mongo", new JsonObject()).getString("url", "mongodb://localhost");
+    var connectionString = config().getJsonObject("mongo", new JsonObject()).getString("url", "mongodb://localhost");
     mongoClient = MongoClients.create(connectionString);
     mongoDatabase = mongoClient.getDatabase("music");
 
-    Completable databaseSetup = updateDB()
+    var databaseSetup = updateDB()
       .andThen(loadDbQueries()).doOnSuccess(props -> dbQueries = props)
       .ignoreElement();
 
@@ -80,7 +80,7 @@ public class MusicStoreVerticle extends AbstractVerticle {
     return vertx.rxExecuteBlocking(future -> {
       Configuration config = new FluentConfiguration()
         .dataSource(datasourceConfig.jdbcUrl(), datasourceConfig.getUser(), datasourceConfig.getPassword());
-      Flyway flyway = new Flyway(config);
+      var flyway = new Flyway(config);
       flyway.migrate();
       future.complete();
     }).ignoreElement();
@@ -88,8 +88,8 @@ public class MusicStoreVerticle extends AbstractVerticle {
 
   private Single<Properties> loadDbQueries() {
     return vertx.<Properties>rxExecuteBlocking(fut -> {
-      Properties properties = new Properties();
-      try (InputStream is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
+      var properties = new Properties();
+      try (var is = getClass().getClassLoader().getResourceAsStream("db/queries.xml")) {
         properties.loadFromXML(is);
         fut.complete(properties);
       } catch (IOException e) {
@@ -99,25 +99,25 @@ public class MusicStoreVerticle extends AbstractVerticle {
   }
 
   private void setupAuthProvider() {
-    SqlAuthenticationOptions options = new SqlAuthenticationOptions()
+    var options = new SqlAuthenticationOptions()
       .setAuthenticationQuery(dbQueries.getProperty("authenticateUser"));
     authProvider = SqlAuthentication.create(dbClient, options);
   }
 
   private Completable setupWebServer() {
-    Router router = Router.router(vertx);
+    var router = Router.router(vertx);
 
-    SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
-    SockJSBridgeOptions bridgeOptions = new SockJSBridgeOptions()
+    var sockJSHandler = SockJSHandler.create(vertx);
+    var bridgeOptions = new SockJSBridgeOptions()
       .addOutboundPermitted(new PermittedOptions().setAddressRegex("album\\.\\d+\\.comments\\.new"));
     router.mountSubRouter("/eventbus", sockJSHandler.bridge(bridgeOptions));
 
     router.route().handler(BodyHandler.create());
 
-    SessionHandler sessionHandler = SessionHandler.create(LocalSessionStore.create(vertx));
+    var sessionHandler = SessionHandler.create(LocalSessionStore.create(vertx));
     router.route().handler(sessionHandler);
 
-    IndexHandler indexHandler = new IndexHandler(dbClient, dbQueries, templateEngine);
+    var indexHandler = new IndexHandler(dbClient, dbQueries, templateEngine);
     router.get("/").handler(indexHandler);
     router.get("/index.html").handler(indexHandler);
 

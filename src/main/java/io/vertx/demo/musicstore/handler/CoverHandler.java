@@ -52,7 +52,7 @@ public class CoverHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    Long albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
+    var albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
     if (albumId == null) {
       rc.next();
       return;
@@ -60,7 +60,7 @@ public class CoverHandler implements Handler<RoutingContext> {
 
     // Currently there's an issue with rx.Buffer as value type, so workaround with core Buffer
     LocalMap<Long, io.vertx.core.buffer.Buffer> covers = rc.vertx().sharedData().getLocalMap("covers");
-    io.vertx.core.buffer.Buffer cached = covers.get(albumId);
+    var cached = covers.get(albumId);
     if (cached != null) {
       rc.response().end(Buffer.newInstance(cached));
       return;
@@ -73,7 +73,7 @@ public class CoverHandler implements Handler<RoutingContext> {
 
   private Maybe<Buffer> download(Long albumId) {
     return findAlbum(albumId).flatMapMaybe(album -> {
-      String musicBrainAlbumId = album.getMusicBrainAlbumId();
+      var musicBrainAlbumId = album.getMusicBrainAlbumId();
       return musicBrainAlbumId == null ? Maybe.empty():Maybe.just(musicBrainAlbumId);
     }).flatMap(mbAlbumId -> {
       return sendGetRequest(mbAlbumId).toMaybe();

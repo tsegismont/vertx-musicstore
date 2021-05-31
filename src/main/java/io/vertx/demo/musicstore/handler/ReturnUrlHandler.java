@@ -27,10 +27,10 @@ public class ReturnUrlHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    String return_url = rc.request().getParam("return_url");
-    Session session = rc.session();
-    if (return_url != null && session != null) {
-      session.put("return_url", return_url);
+    var returnUrl = rc.request().getParam("return_url");
+    var session = rc.session();
+    if (returnUrl != null && session != null) {
+      session.put("return_url", returnUrl);
     }
     rc.next();
   }

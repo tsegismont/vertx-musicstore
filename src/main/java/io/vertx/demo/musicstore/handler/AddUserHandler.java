@@ -49,15 +49,13 @@ public class AddUserHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    MultiMap formAttributes = rc.request().formAttributes();
+    var formAttributes = rc.request().formAttributes();
 
-    String username = formAttributes.get("username");
-    String password = formAttributes.get("password");
-    String passwordConfirm = formAttributes.get("password-confirm");
+    var username = formAttributes.get("username");
+    var password = formAttributes.get("password");
+    var passwordConfirm = formAttributes.get("password-confirm");
 
-    if (username == null || username.isEmpty()
-      || password == null || password.isEmpty()
-      || passwordConfirm == null || passwordConfirm.isEmpty()) {
+    if (username.isBlank() || password.isBlank() || passwordConfirm.isBlank()) {
       rc.response().setStatusCode(HTTP_BAD_REQUEST).end("Missing param");
       return;
     }
@@ -67,12 +65,12 @@ public class AddUserHandler implements Handler<RoutingContext> {
       return;
     }
 
-    String hash = authProvider.hash("pbkdf2", VertxContextPRNG.current().nextString(32), password);
+    var hash = authProvider.hash("pbkdf2", VertxContextPRNG.current().nextString(32), password);
 
     dbClient.preparedQuery(insertUser).rxExecute(Tuple.of(username, hash))
       .subscribe(updateResult -> {
-        StringBuilder location = new StringBuilder("/login");
-        Session session = rc.session();
+        var location = new StringBuilder("/login");
+        var session = rc.session();
         String return_url = session == null ? null : session.get("return_url");
         if (return_url != null) {
           try {

@@ -48,39 +48,39 @@ public class AddAlbumCommentHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    Long albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
+    var albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
     if (albumId == null) {
       rc.next();
       return;
     }
 
-    User user = rc.user();
+    var user = rc.user();
     if (user == null) {
       rc.response().setStatusCode(HTTP_UNAUTHORIZED).end();
       return;
     }
 
-    String content = rc.getBodyAsString();
-    if (content == null || content.isEmpty()) {
+    var content = rc.getBodyAsString();
+    if (content.isBlank()) {
       rc.response().setStatusCode(HTTP_BAD_REQUEST).end();
       return;
     }
 
-    long timestamp = System.currentTimeMillis();
+    var timestamp = System.currentTimeMillis();
 
-    Document comment = new Document("albumId", albumId)
+    var comment = new Document("albumId", albumId)
       .append("username", user.principal().getValue("username"))
       .append("timestamp", timestamp)
       .append("comment", content);
 
-    Publisher<InsertOneResult> insertOne = mongoDatabase.getCollection("comments")
+    var insertOne = mongoDatabase.getCollection("comments")
       .insertOne(comment, new InsertOneOptions());
 
-    Vertx vertx = rc.vertx();
-    Scheduler scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
+    var vertx = rc.vertx();
+    var scheduler = RxHelper.scheduler(vertx.getOrCreateContext());
 
-    String address = "album." + albumId + ".comments.new";
-    JsonObject eventBusMessage = BsonUtil.toJsonObject(comment);
+    var address = "album." + albumId + ".comments.new";
+    var eventBusMessage = BsonUtil.toJsonObject(comment);
 
     Flowable.fromPublisher(insertOne)
       .ignoreElements()

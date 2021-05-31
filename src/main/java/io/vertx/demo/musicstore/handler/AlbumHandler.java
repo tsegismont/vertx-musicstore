@@ -49,14 +49,14 @@ public class AlbumHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    Long albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
+    var albumId = PathUtil.parseLongParam(rc.pathParam("albumId"));
     if (albumId == null) {
       rc.next();
       return;
     }
 
-    Single<Album> as = findAlbum(albumId);
-    Single<List<Track>> ts = findTracks(albumId);
+    var as = findAlbum(albumId);
+    var ts = findTracks(albumId);
 
     Single.zip(as, ts, (album, tracks) -> {
       Map<String, Object> data = new HashMap<>(2);
