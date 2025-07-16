@@ -47,7 +47,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-rx-java3</artifactId>
-      <version>${vertx-stack.version}</version>
+      <version>4.5.13</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -64,7 +64,7 @@
     <dependency>
       <groupId>org.webjars.npm</groupId>
       <artifactId>vertx3-eventbus-client</artifactId>
-      <version>3.9.4</version>
+      <version>4.1.0.CR2</version>
     </dependency>
     <dependency>
       <groupId>org.webjars</groupId>
